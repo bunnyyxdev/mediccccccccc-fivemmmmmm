@@ -124,24 +124,38 @@ async function handlerDELETE(
   }
 }
 
-export async function PUT(
+async function handlerPUTWithParams(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = requireAuth(request);
+  const user = await authenticateRequest(request);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   return handlerPUT(request, { params }, user);
 }
 
-export async function DELETE(
+async function handlerDELETEWithParams(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = await requireAuth(request);
+  const user = await authenticateRequest(request);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   return handlerDELETE(request, { params }, user);
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return handlerPUTWithParams(request, { params });
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return handlerDELETEWithParams(request, { params });
 }
