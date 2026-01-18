@@ -303,7 +303,10 @@ export default function DashboardPage() {
                 </div>
               )}
               <button
-                onClick={() => fetchStats(true)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  fetchStats(true);
+                }}
                 disabled={loading || isRefreshing}
                 className="flex items-center space-x-2 px-4 py-2.5 text-sm bg-white border-2 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 rounded-xl transition-smooth hover-lift button-press disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
                 title="รีเฟรชข้อมูล"
