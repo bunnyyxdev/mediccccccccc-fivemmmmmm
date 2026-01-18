@@ -24,6 +24,22 @@ module.exports = {
           900: '#0c4a6e',
         },
       },
+      screens: {
+        'xs': '475px',
+        '3xl': '1920px',
+      },
+      transitionDuration: {
+        '400': '400ms',
+        '600': '600ms',
+        '800': '800ms',
+      },
+      animation: {
+        'fade-in': 'fade-in 0.6s ease-out',
+        'slide-down': 'slide-down 0.5s ease-out',
+        'slide-up': 'slide-up 0.5s ease-out',
+        'scale-in': 'scale-in 0.3s ease-out',
+        'float': 'float 3s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

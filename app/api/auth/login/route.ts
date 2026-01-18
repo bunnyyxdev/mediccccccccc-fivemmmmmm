@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Check for admin login - identify admin by username from .env
     const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'administrator';
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'bizcity#123456';
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'exampleadminpassword';
 
     console.log(`Login attempt - Username: "${trimmedUsername}", Admin username from .env: "${ADMIN_USERNAME}"`);
 

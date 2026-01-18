@@ -20,7 +20,7 @@ const nextConfig = {
     DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL,
     GOOGLE_SHEETS_SPREADSHEET_ID: process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
     ADMIN_USERNAME: process.env.ADMIN_USERNAME || 'administrator',
-    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'bizcity#123456',
+    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'exampleadminpassword',
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || '',
   },
 }

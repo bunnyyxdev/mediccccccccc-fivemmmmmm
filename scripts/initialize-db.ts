@@ -22,7 +22,7 @@ import User from '../models/User';
 import { hashPassword } from '../lib/auth';
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'administrator';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'bizcity#123456';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'exampleadminpassword';
 
 async function initializeAdminUser() {
   console.log('\n👤 Checking admin user...');

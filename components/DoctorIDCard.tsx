@@ -65,7 +65,7 @@ export default function DoctorIDCard({
             </div>
           </div>
           <div className="text-right">
-            <p className="text-white text-xs font-medium">ระบบหมอ Biz City</p>
+            <p className="text-white text-xs font-medium">ระบบหมอ Preview City</p>
             <p className="text-blue-100 text-xs">Medic Management System</p>
           </div>
         </div>

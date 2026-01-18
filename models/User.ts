@@ -23,7 +23,9 @@ export interface IUser extends Document {
   profileImage?: string;
   driverLicense?: string; // หมายเลขใบขับขี่
   driverLicenseType?: DriverLicenseType; // Type ของใบอนุญาตขับฮอ
-  role: 'doctor' | 'admin';
+  role: 'doctor' | 'admin'; // Legacy role field (kept for backward compatibility)
+  customRole?: mongoose.Types.ObjectId; // Reference to custom Role
+  permissions?: mongoose.Types.ObjectId[]; // Additional permissions (can override role permissions)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -71,6 +73,14 @@ const UserSchema: Schema = new Schema(
       enum: ['doctor', 'admin'],
       default: 'doctor',
     },
+    customRole: {
+      type: Schema.Types.ObjectId,
+      ref: 'Role',
+    },
+    permissions: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Permission',
+    }],
   },
   {
     timestamps: true,

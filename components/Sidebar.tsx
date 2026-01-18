@@ -28,6 +28,7 @@ import {
   History,
   Download,
   Upload,
+  TrendingUp,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -145,6 +146,7 @@ const adminMenuItems: MenuItem[] = [
     icon: Database,
     href: '/dashboard/admin/system',
     submenu: [
+      { label: '📊 Reports & Analytics', href: '/dashboard/admin/analytics', icon: TrendingUp },
       { label: 'Activity Log', href: '/dashboard/admin/activity-log', icon: History },
       { label: 'สำรอง/คืนค่าข้อมูล', href: '/dashboard/admin/backup-restore', icon: Database },
     ],
@@ -210,14 +212,14 @@ export default function Sidebar({ role = 'doctor', onLogout }: SidebarProps) {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-screen w-64 bg-gray-900 text-white shadow-lg z-40 transition-transform duration-300 ${
+      <div className={`fixed left-0 top-0 h-screen w-64 bg-gray-900 text-white shadow-lg z-40 transition-spring ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
       <div className="flex flex-col h-full">
         {/* Logo/Header */}
         <div className="p-6 border-b border-gray-800 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-primary-400">ระบบหมอ Biz City</h1>
+              <h1 className="text-xl font-bold text-primary-400">ระบบหมอ Preview City</h1>
             <p className="text-sm text-gray-400 mt-1">Medic Management System</p>
             {currentTime && (
               <p className="text-xs text-gray-500 mt-2 font-mono">{currentTime}</p>
@@ -246,7 +248,7 @@ export default function Sidebar({ role = 'doctor', onLogout }: SidebarProps) {
                       <button
                         type="button"
                         onClick={() => setOpenSubmenu(openSubmenu === item.href ? null : item.href)}
-                        className={`w-full flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${
+                        className={`w-full flex items-center px-4 py-3 rounded-lg transition-smooth hover-lift ${
                           isActive || openSubmenu === item.href
                             ? 'bg-primary-600 text-white shadow-md'
                             : 'text-gray-300 hover:bg-gray-800 hover:text-white'
@@ -279,8 +281,8 @@ export default function Sidebar({ role = 'doctor', onLogout }: SidebarProps) {
                         href={item.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-                          isActive ? 'bg-primary-600 text-white' : 'text-gray-300 hover:bg-gray-800'
+                        className={`flex items-center px-4 py-3 rounded-lg transition-smooth hover-lift ${
+                          isActive ? 'bg-primary-600 text-white shadow-md' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                         }`}
                       >
                         <Icon className="w-5 h-5 mr-3" />
@@ -290,8 +292,8 @@ export default function Sidebar({ role = 'doctor', onLogout }: SidebarProps) {
                     ) : (
                       <Link
                         href={item.href}
-                        className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-                          isActive ? 'bg-primary-600 text-white' : 'text-gray-300 hover:bg-gray-800'
+                        className={`flex items-center px-4 py-3 rounded-lg transition-smooth hover-lift ${
+                          isActive ? 'bg-primary-600 text-white shadow-md' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                         }`}
                       >
                         <Icon className="w-5 h-5 mr-3" />

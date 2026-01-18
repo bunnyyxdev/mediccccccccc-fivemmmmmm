@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import Backup from '@/models/Backup';
 import { requireAuth } from '@/lib/api-helpers';
 import mongoose from 'mongoose';
 import { logActivity } from '@/lib/activity-log';
@@ -32,12 +33,44 @@ async function handlerPOST(request: NextRequest, user: any) {
     const userDoc = await (User as any).findById(user.userId);
     const userName = userDoc?.name || 'Unknown';
 
-    const backup = {
+    const body = await request.json().catch(() => ({}));
+    const { scheduleId, isAutomatic = false } = body;
+
+    // Calculate total documents
+    let totalDocuments = 0;
+    Object.values(backupData).forEach((docs: any) => {
+      if (Array.isArray(docs)) {
+        totalDocuments += docs.length;
+      }
+    });
+
+    const backupObj = {
       version: '1.0',
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
       createdBy: user.userId,
       createdByName: userName,
       collections: backupData,
+      isAutomatic: isAutomatic || false,
+      scheduleId: scheduleId || undefined,
+      status: 'completed' as const,
+      metadata: {
+        totalCollections: collections.length,
+        totalDocuments,
+      },
+    };
+
+    // Save backup to MongoDB for history
+    try {
+      await (Backup as any).create(backupObj);
+    } catch (error) {
+      console.error('Failed to save backup to MongoDB:', error);
+      // Continue even if saving to MongoDB fails
+    }
+
+    // Keep original format for response (with ISO string timestamp)
+    const backup = {
+      ...backupObj,
+      timestamp: backupObj.timestamp.toISOString(),
     };
 
     // Log activity

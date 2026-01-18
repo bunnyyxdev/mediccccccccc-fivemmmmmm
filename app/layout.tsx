@@ -10,8 +10,8 @@ const notoSansThai = Noto_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: 'ระบบหมอ Biz City',
-  description: 'ระบบจัดการสำหรับแพทย์ Biz City',
+  title: 'ระบบหมอ Preview City',
+  description: 'ระบบจัดการสำหรับแพทย์ Preview City',
 };
 
 export default function RootLayout({

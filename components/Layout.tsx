@@ -96,8 +96,11 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <p className="text-gray-600 animate-pulse-slow">กำลังโหลด...</p>
+        </div>
       </div>
     );
   }
@@ -112,8 +115,10 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar role={userRole} onLogout={handleLogout} />
-      <main className="flex-1 lg:ml-64 p-4 lg:p-8 mt-16 lg:mt-0">
-        {children}
+      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 mt-16 lg:mt-0 animate-fade-in transition-smooth">
+        <div className="max-w-full">
+          {children}
+        </div>
       </main>
     </div>
   );

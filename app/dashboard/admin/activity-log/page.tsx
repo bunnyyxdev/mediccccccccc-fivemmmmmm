@@ -5,7 +5,7 @@ import Layout from '@/components/Layout';
 import Button from '@/components/Button';
 import toast from 'react-hot-toast';
 import axios from 'axios';
-import { Clock, Filter, Download, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { Clock, Filter, Download, ArrowUpDown, ArrowUp, ArrowDown, Trash2, FileJson, FileSpreadsheet, BarChart3, TrendingUp } from 'lucide-react';
 
 interface ActivityLog {
   _id: string;
@@ -68,6 +68,9 @@ export default function ActivityLogPage() {
     direction: 'desc',
   });
   const [deleteAllLoading, setDeleteAllLoading] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const limit = 20;
 
   useEffect(() => {
@@ -165,6 +168,132 @@ export default function ActivityLogPage() {
     );
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      
+      // Use same filters as current view
+      if (filters.action) params.append('action', filters.action);
+      if (filters.entityType) params.append('entityType', filters.entityType);
+      if (filters.search) params.append('search', filters.search);
+      if (filters.performedBy) params.append('performedBy', filters.performedBy);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      
+      // Get all logs (no pagination for export)
+      params.append('limit', '10000');
+
+      const response = await axios.get(`/api/activity-log?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const logs = response.data.data || [];
+      
+      // Generate CSV
+      const headers = ['เวลา', 'Action', 'Entity Type', 'Entity Name', 'ผู้ดำเนินการ', 'IP Address', 'Changes'];
+      const rows = logs.map((log: ActivityLog) => [
+        formatDate(log.createdAt),
+        ACTION_LABELS[log.action] || log.action,
+        log.entityType,
+        log.entityName || '-',
+        log.performedByName,
+        log.ipAddress || '-',
+        log.changes ? JSON.stringify(log.changes) : '-',
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `activity-log-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('ส่งออก CSV สำเร็จ');
+    } catch (error: any) {
+      toast.error('ไม่สามารถส่งออก CSV ได้');
+    }
+  };
+
+  const handleExportJSON = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      
+      // Use same filters as current view
+      if (filters.action) params.append('action', filters.action);
+      if (filters.entityType) params.append('entityType', filters.entityType);
+      if (filters.search) params.append('search', filters.search);
+      if (filters.performedBy) params.append('performedBy', filters.performedBy);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      
+      // Get all logs (no pagination for export)
+      params.append('limit', '10000');
+
+      const response = await axios.get(`/api/activity-log?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const logs = response.data.data || [];
+      
+      // Generate JSON
+      const jsonContent = JSON.stringify(logs, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `activity-log-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('ส่งออก JSON สำเร็จ');
+    } catch (error: any) {
+      toast.error('ไม่สามารถส่งออก JSON ได้');
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      setAnalyticsLoading(true);
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      
+      if (filters.startDate && filters.endDate) {
+        params.append('startDate', filters.startDate);
+        params.append('endDate', filters.endDate);
+      } else {
+        params.append('period', '30d');
+      }
+
+      const response = await axios.get(`/api/activity-log/analytics?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setAnalyticsData(response.data);
+    } catch (error: any) {
+      toast.error('ไม่สามารถโหลดข้อมูล Analytics ได้');
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showAnalytics) {
+      fetchAnalytics();
+    }
+  }, [showAnalytics, filters.startDate, filters.endDate]);
+
   const handleDeleteAll = async () => {
     // Double confirmation
     const firstConfirm = window.confirm(
@@ -239,19 +368,56 @@ export default function ActivityLogPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Activity Log / Audit Trail</h1>
             <p className="text-gray-600">บันทึกการกระทำสำคัญของผู้ใช้ทั้งหมด</p>
           </div>
-          {total > 0 && (
+          <div className="flex items-center space-x-2">
             <Button
-              variant="danger"
-              onClick={handleDeleteAll}
-              disabled={deleteAllLoading || loading}
-              description="ลบ Activity Log ทั้งหมด (ไม่สามารถกู้คืนได้)"
+              variant="primary"
+              onClick={handleExportCSV}
+              disabled={loading || total === 0}
             >
               <span className="flex items-center space-x-2">
-                <Trash2 className="w-5 h-5" />
-                <span>{deleteAllLoading ? 'กำลังลบ...' : 'ลบทั้งหมด'}</span>
+                <FileSpreadsheet className="w-5 h-5" />
+                <span>ส่งออก CSV</span>
               </span>
             </Button>
-          )}
+            <Button
+              variant="secondary"
+              onClick={handleExportJSON}
+              disabled={loading || total === 0}
+            >
+              <span className="flex items-center space-x-2">
+                <FileJson className="w-5 h-5" />
+                <span>ส่งออก JSON</span>
+              </span>
+            </Button>
+            <Button
+              variant="success"
+              onClick={() => {
+                setShowAnalytics(!showAnalytics);
+                if (!showAnalytics && !analyticsData) {
+                  fetchAnalytics();
+                }
+              }}
+              disabled={loading}
+            >
+              <span className="flex items-center space-x-2">
+                <BarChart3 className="w-5 h-5" />
+                <span>{showAnalytics ? 'ซ่อน' : 'แสดง'} Analytics</span>
+              </span>
+            </Button>
+            {total > 0 && (
+              <Button
+                variant="danger"
+                onClick={handleDeleteAll}
+                disabled={deleteAllLoading || loading}
+                description="ลบ Activity Log ทั้งหมด (ไม่สามารถกู้คืนได้)"
+              >
+                <span className="flex items-center space-x-2">
+                  <Trash2 className="w-5 h-5" />
+                  <span>{deleteAllLoading ? 'กำลังลบ...' : 'ลบทั้งหมด'}</span>
+                </span>
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Filters */}

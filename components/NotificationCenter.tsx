@@ -58,7 +58,7 @@ export default function NotificationCenter({ userId, token }: NotificationCenter
       {/* Notification Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors"
+        className="relative p-2 text-gray-600 hover:text-gray-900 transition-smooth hover-scale button-press"
       >
         <Bell className="w-6 h-6" />
         {unreadCount > 0 && (
@@ -75,7 +75,7 @@ export default function NotificationCenter({ userId, token }: NotificationCenter
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col">
+          <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col animate-slide-in-top transition-smooth">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">

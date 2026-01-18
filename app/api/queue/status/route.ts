@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import QueueStatus from '@/models/QueueStatus';
+import QueueHistory from '@/models/QueueHistory';
 import { requireAuth, handleApiError } from '@/lib/api-helpers';
 
 async function handlerGET(request: NextRequest, user: any) {
@@ -44,7 +45,7 @@ async function handlerPOST(request: NextRequest, user: any) {
     await connectDB();
     const body = await request.json();
 
-    // If stopping the queue (isRunning: false), DELETE the document instead of updating
+    // If stopping the queue (isRunning: false), save to history and DELETE the document
     if (body.isRunning === false) {
       // Check if there's a running queue and verify the user is the runner
       const existingQueue = await (QueueStatus as any).findOne({ isRunning: true })
@@ -61,6 +62,40 @@ async function handlerPOST(request: NextRequest, user: any) {
             { error: 'เฉพาะผู้ที่เริ่มรันคิวหรือผู้ดูแลระบบเท่านั้นที่สามารถจบคิวได้' },
             { status: 403 }
           );
+        }
+
+        // Save to history before deleting
+        try {
+          const endTime = new Date();
+          const duration = existingQueue.startTime 
+            ? endTime.getTime() - new Date(existingQueue.startTime).getTime()
+            : 0;
+
+          const User = (await import('@/models/User')).default;
+          const userDoc = await (User as any).findById(user.userId).lean();
+          const userName = userDoc?.name || user.name || 'ไม่ระบุ';
+
+          await (QueueHistory as any).create({
+            sessionId: `queue-${existingQueue._id}-${Date.now()}`,
+            runnerId: existingQueue.runnerId,
+            runnerName: existingQueue.runnerName,
+            doctors: existingQueue.doctors || [],
+            startTime: existingQueue.startTime || existingQueue.createdAt,
+            endTime: endTime,
+            duration: duration,
+            totalDoctors: existingQueue.doctors?.length || 0,
+            completedDoctors: existingQueue.currentQueueIndex || 0,
+            status: 'stopped',
+            stoppedBy: user.userId,
+            stoppedByName: userName,
+            metadata: {
+              finalQueueIndex: existingQueue.currentQueueIndex,
+              elapsedTime: existingQueue.elapsedTime,
+            },
+          });
+        } catch (error) {
+          console.error('Failed to save queue history:', error);
+          // Continue even if history save fails
         }
       }
 

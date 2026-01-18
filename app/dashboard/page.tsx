@@ -8,15 +8,16 @@ import {
   Package, 
   Clock, 
   Users, 
-  Image,
-  FileText,
-  Calendar,
-  RefreshCw,
-  TrendingUp,
-  ArrowRight,
-  Activity,
+  Image, 
+  FileText, 
+  Calendar, 
+  RefreshCw, 
+  TrendingUp, 
+  ArrowRight, 
+  Activity, 
   Zap
 } from 'lucide-react';
+import LiveActivityFeed from '@/components/LiveActivityFeed';
 
 interface DashboardStats {
   leave: number;
@@ -48,25 +49,34 @@ export default function DashboardPage() {
     timeTracking: 0,
   });
   const [loading, setLoading] = useState(true);
-  const refreshInterval = 15000; // 15 seconds - fixed
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const refreshInterval = 5000; // 5 seconds for real-time updates
   const [queueStatus, setQueueStatus] = useState<QueueStatus>({
     isRunning: false,
     doctorCount: 0,
   });
 
-  const fetchStats = async () => {
+  const fetchStats = async (showLoading = false) => {
     try {
+      if (showLoading) {
+        setIsRefreshing(true);
+      }
       const token = localStorage.getItem('token');
       if (token) {
         const response = await axios.get('/api/dashboard/stats', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setStats(response.data);
+        setLastUpdated(new Date());
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
     } finally {
       setLoading(false);
+      if (showLoading) {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -140,14 +150,15 @@ export default function DashboardPage() {
     if (userStr) {
       setUser(JSON.parse(userStr));
     }
-    fetchStats();
+    fetchStats(true);
     fetchQueueStatus();
+    setLastUpdated(new Date());
   }, []);
 
-  // Auto-refresh every 15 seconds
+  // Auto-refresh every 5 seconds for stats (real-time sync)
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchStats();
+      fetchStats(false); // Don't show loading indicator for auto-refresh
       fetchQueueStatus(); // Sync คิวล่าสุดด้วย
     }, refreshInterval);
     
@@ -272,15 +283,35 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            <button
-              onClick={fetchStats}
-              disabled={loading}
-              className="flex items-center space-x-2 px-4 py-2.5 text-sm bg-white border-2 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-              title="รีเฟรชข้อมูล"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>รีเฟรช</span>
-            </button>
+            <div className="flex items-center space-x-3">
+              {lastUpdated && (
+                <div className="flex items-center space-x-2 text-xs text-gray-500">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>
+                    อัปเดตล่าสุด: {lastUpdated.toLocaleTimeString('th-TH', { 
+                      hour: '2-digit', 
+                      minute: '2-digit', 
+                      second: '2-digit' 
+                    })}
+                  </span>
+                  {isRefreshing && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 animate-pulse">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></span>
+                      กำลังอัปเดต
+                    </span>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={() => fetchStats(true)}
+                disabled={loading || isRefreshing}
+                className="flex items-center space-x-2 px-4 py-2.5 text-sm bg-white border-2 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 rounded-xl transition-smooth hover-lift button-press disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                title="รีเฟรชข้อมูล"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'กำลังอัปเดต...' : 'รีเฟรช'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Stats Grid */}
@@ -291,7 +322,7 @@ export default function DashboardPage() {
                 <div
                   key={index}
                   onClick={() => router.push(stat.href)}
-                  className={`bg-gradient-to-br ${stat.bgGradient} border-2 ${stat.borderColor} rounded-2xl p-6 cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-fade-in group`}
+                  className={`bg-gradient-to-br ${stat.bgGradient} border-2 ${stat.borderColor} rounded-2xl p-6 cursor-pointer card-hover animate-fade-in group transition-smooth`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -312,13 +343,13 @@ export default function DashboardPage() {
                         <p className="text-xs text-gray-600 mt-1">{stat.description}</p>
                       )}
                     </div>
-                    <div className={`${stat.iconBg} p-3 rounded-xl group-hover:scale-110 transition-transform duration-200`}>
+                    <div className={`${stat.iconBg} p-3 rounded-xl group-hover:scale-110 transition-spring animate-float`}>
                       <Icon className={`w-6 h-6 ${stat.iconColor}`} />
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-4 border-t border-white/50">
                     <span className="text-xs font-medium text-gray-600">ดูรายละเอียด</span>
-                    <ArrowRight className={`w-4 h-4 ${stat.iconColor} group-hover:translate-x-1 transition-transform duration-200`} />
+                    <ArrowRight className={`w-4 h-4 ${stat.iconColor} group-hover:translate-x-1 transition-smooth`} />
                   </div>
                 </div>
               );
@@ -342,9 +373,9 @@ export default function DashboardPage() {
                   <button
                     key={index}
                     onClick={() => router.push(stat.href)}
-                    className="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-gradient-to-br hover:from-gray-100 hover:to-gray-50 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 hover:scale-105 group"
+                    className="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-gradient-to-br hover:from-gray-100 hover:to-gray-50 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-smooth hover-scale button-press group"
                   >
-                    <div className={`${stat.iconBg} p-3 rounded-lg mb-3 group-hover:scale-110 transition-transform duration-200`}>
+                    <div className={`${stat.iconBg} p-3 rounded-lg mb-3 group-hover:scale-110 transition-spring`}>
                       <Icon className={`w-6 h-6 ${stat.iconColor}`} />
                     </div>
                     <span className="text-xs font-medium text-gray-700 text-center group-hover:text-gray-900">
@@ -355,6 +386,11 @@ export default function DashboardPage() {
               })}
             </div>
           </div>
+        </div>
+
+        {/* Live Activity Feed Section */}
+        <div className="animate-fade-in-delay mt-8">
+          <LiveActivityFeed token={typeof window !== 'undefined' ? localStorage.getItem('token') || undefined : undefined} limit={8} />
         </div>
       </div>
     </Layout>
