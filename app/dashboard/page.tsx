@@ -1,0 +1,362 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Layout from '@/components/Layout';
+import { useRouter } from 'next/navigation';
+import axios from 'axios';
+import { 
+  Package, 
+  Clock, 
+  Users, 
+  Image,
+  FileText,
+  Calendar,
+  RefreshCw,
+  TrendingUp,
+  ArrowRight,
+  Activity,
+  Zap
+} from 'lucide-react';
+
+interface DashboardStats {
+  leave: number;
+  discipline: number;
+  withdrawItems: number;
+  timeTracking: number;
+  pendingLeaves?: number;
+  pendingDisciplines?: number;
+  recentWithdraws?: number;
+}
+
+interface QueueStatus {
+  isRunning: boolean;
+  doctorCount: number;
+  currentQueueNumber?: number;
+  totalDoctors?: number;
+  elapsedTime?: string;
+  currentDoctorName?: string;
+}
+
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    leave: 0,
+    discipline: 0,
+    withdrawItems: 0,
+    timeTracking: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const refreshInterval = 15000; // 15 seconds - fixed
+  const [queueStatus, setQueueStatus] = useState<QueueStatus>({
+    isRunning: false,
+    doctorCount: 0,
+  });
+
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const response = await axios.get('/api/dashboard/stats', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setStats(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchQueueStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // Fetch queue status from API (temporary database)
+      const response = await axios.get('/api/queue/status', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const status = response.data;
+
+      if (status.isRunning && status.doctors && status.doctors.length > 0) {
+        const currentDoctor = status.doctors[status.currentQueueIndex] || null;
+        
+        // Calculate elapsed time in HH:MM:SS format
+        let elapsedTimeStr = '';
+        if (status.startTime) {
+          const startTime = new Date(status.startTime);
+          const now = new Date();
+          const elapsedMs = now.getTime() - startTime.getTime();
+          const totalSeconds = Math.floor(elapsedMs / 1000);
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
+          elapsedTimeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        setQueueStatus({
+          isRunning: true,
+          doctorCount: status.doctors.length,
+          currentQueueNumber: (status.currentQueueIndex || 0) + 1,
+          totalDoctors: status.doctors.length,
+          elapsedTime: elapsedTimeStr,
+          currentDoctorName: currentDoctor?.name || undefined,
+        });
+      } else {
+        // Queue is not running
+        setQueueStatus({
+          isRunning: false,
+          doctorCount: 0,
+          currentQueueNumber: undefined,
+          totalDoctors: undefined,
+          elapsedTime: undefined,
+          currentDoctorName: undefined,
+        });
+      }
+    } catch (error: any) {
+      // If 404, queue is not running (expected)
+      if (error.response?.status !== 404) {
+        console.error('Failed to fetch queue status:', error);
+      }
+      // Reset to not running state on error
+      setQueueStatus({
+        isRunning: false,
+        doctorCount: 0,
+        currentQueueNumber: undefined,
+        totalDoctors: undefined,
+        elapsedTime: undefined,
+        currentDoctorName: undefined,
+      });
+    }
+  };
+
+  // Initial fetch on mount
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+    fetchStats();
+    fetchQueueStatus();
+  }, []);
+
+  // Auto-refresh every 15 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchQueueStatus(); // Sync คิวล่าสุดด้วย
+    }, refreshInterval);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Sync คิวทุกๆ 2 วินาที (เร็วกว่า auto-refresh เพื่อให้เห็น real-time)
+  useEffect(() => {
+    const queueInterval = setInterval(() => {
+      fetchQueueStatus();
+    }, 2000); // 2 seconds
+    
+    return () => clearInterval(queueInterval);
+  }, []);
+
+
+  const statCards = [
+    {
+      label: 'เบิกของในตู้',
+      value: loading ? '...' : stats.withdrawItems.toLocaleString('th-TH'),
+      icon: Package,
+      gradient: 'from-blue-500 to-cyan-500',
+      bgGradient: 'from-blue-50 to-cyan-50',
+      borderColor: 'border-blue-200',
+      textColor: 'text-blue-700',
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      href: '/dashboard/withdraw-items',
+      description: stats.recentWithdraws ? `${stats.recentWithdraws} รายการ 7 วันล่าสุด` : 'รายการทั้งหมด',
+      trend: stats.recentWithdraws ? '+' : undefined,
+    },
+    {
+      label: 'ลงเวลาพี่เลี้ยง',
+      value: loading ? '...' : stats.timeTracking.toLocaleString('th-TH'),
+      icon: Clock,
+      gradient: 'from-emerald-500 to-teal-500',
+      bgGradient: 'from-emerald-50 to-teal-50',
+      borderColor: 'border-emerald-200',
+      textColor: 'text-emerald-700',
+      iconBg: 'bg-emerald-100',
+      iconColor: 'text-emerald-600',
+      href: '/dashboard/time-tracking',
+      description: 'บันทึกการลงเวลา',
+    },
+    {
+      label: 'รันคิว',
+      value: queueStatus.isRunning && queueStatus.currentDoctorName
+        ? queueStatus.currentDoctorName
+        : 'ไม่มีคิวที่กำลังรัน',
+      icon: Users,
+      gradient: queueStatus.isRunning ? 'from-green-500 to-emerald-500' : 'from-purple-500 to-pink-500',
+      bgGradient: queueStatus.isRunning ? 'from-green-50 to-emerald-50' : 'from-purple-50 to-pink-50',
+      borderColor: queueStatus.isRunning ? 'border-green-200' : 'border-purple-200',
+      textColor: queueStatus.isRunning ? 'text-green-700' : 'text-purple-700',
+      iconBg: queueStatus.isRunning ? 'bg-green-100' : 'bg-purple-100',
+      iconColor: queueStatus.isRunning ? 'text-green-600' : 'text-purple-600',
+      href: '/dashboard/queue',
+      description: queueStatus.isRunning 
+        ? `คิวปัจจุบัน: ${queueStatus.currentQueueNumber || 0}/${queueStatus.totalDoctors || 0}${queueStatus.elapsedTime ? ` (${queueStatus.elapsedTime})` : ''}`
+        : 'จัดการคิวหมอ',
+      isActive: queueStatus.isRunning,
+    },
+    {
+      label: 'สตอรี่',
+      value: '-',
+      icon: Image,
+      gradient: 'from-pink-500 to-rose-500',
+      bgGradient: 'from-pink-50 to-rose-50',
+      borderColor: 'border-pink-200',
+      textColor: 'text-pink-700',
+      iconBg: 'bg-pink-100',
+      iconColor: 'text-pink-600',
+      href: '/dashboard/story',
+      description: 'จัดการสตอรี่',
+    },
+    {
+      label: 'การลา',
+      value: loading ? '...' : stats.leave.toLocaleString('th-TH'),
+      icon: Calendar,
+      gradient: 'from-orange-500 to-amber-500',
+      bgGradient: 'from-orange-50 to-amber-50',
+      borderColor: 'border-orange-200',
+      textColor: 'text-orange-700',
+      iconBg: 'bg-orange-100',
+      iconColor: 'text-orange-600',
+      href: '/dashboard/others/leave',
+      description: stats.pendingLeaves ? `${stats.pendingLeaves} รอการอนุมัติ` : 'รายการทั้งหมด',
+    },
+    {
+      label: 'โทษวินัย',
+      value: loading ? '...' : stats.discipline.toLocaleString('th-TH'),
+      icon: FileText,
+      gradient: 'from-red-500 to-rose-500',
+      bgGradient: 'from-red-50 to-rose-50',
+      borderColor: 'border-red-200',
+      textColor: 'text-red-700',
+      iconBg: 'bg-red-100',
+      iconColor: 'text-red-600',
+      href: '/dashboard/discipline',
+      description: stats.pendingDisciplines ? `${stats.pendingDisciplines} รอดำเนินการ` : 'รายการทั้งหมด',
+    },
+  ];
+
+  return (
+    <Layout requireAuth={true}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header Section */}
+        <div className="mb-8 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                  <Activity className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    Dashboard
+                  </h1>
+                  <p className="text-gray-500 text-sm mt-0.5">
+                    ยินดีต้อนรับ, <span className="font-semibold text-gray-700">{user?.name || 'ผู้ใช้'}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={fetchStats}
+              disabled={loading}
+              className="flex items-center space-x-2 px-4 py-2.5 text-sm bg-white border-2 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+              title="รีเฟรชข้อมูล"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>รีเฟรช</span>
+            </button>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {statCards.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <div
+                  key={index}
+                  onClick={() => router.push(stat.href)}
+                  className={`bg-gradient-to-br ${stat.bgGradient} border-2 ${stat.borderColor} rounded-2xl p-6 cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-fade-in group`}
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                        {stat.isActive && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 animate-pulse">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
+                            กำลังทำงาน
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-3xl font-bold ${stat.textColor} mb-1`}>
+                        {stat.value}
+                      </p>
+                      {stat.description && (
+                        <p className="text-xs text-gray-600 mt-1">{stat.description}</p>
+                      )}
+                    </div>
+                    <div className={`${stat.iconBg} p-3 rounded-xl group-hover:scale-110 transition-transform duration-200`}>
+                      <Icon className={`w-6 h-6 ${stat.iconColor}`} />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-white/50">
+                    <span className="text-xs font-medium text-gray-600">ดูรายละเอียด</span>
+                    <ArrowRight className={`w-4 h-4 ${stat.iconColor} group-hover:translate-x-1 transition-transform duration-200`} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Quick Actions Section */}
+        <div className="animate-fade-in-delay">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <Zap className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900">เมนูหลัก</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {statCards.map((stat, index) => {
+                const Icon = stat.icon;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => router.push(stat.href)}
+                    className="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-gradient-to-br hover:from-gray-100 hover:to-gray-50 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 hover:scale-105 group"
+                  >
+                    <div className={`${stat.iconBg} p-3 rounded-lg mb-3 group-hover:scale-110 transition-transform duration-200`}>
+                      <Icon className={`w-6 h-6 ${stat.iconColor}`} />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 text-center group-hover:text-gray-900">
+                      {stat.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}
