@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import BackupSchedule from '@/models/BackupSchedule';
-import { requireAuth, handleApiError } from '@/lib/api-helpers';
+import { handleApiError, authenticateRequest } from '@/lib/api-helpers';
 
 // Helper function to calculate next run time (same as in schedule route)
 function calculateNextRun(schedule: any): Date {
