@@ -6,7 +6,7 @@ import Button from '@/components/Button';
 import Alert from '@/components/Alert';
 import toast from 'react-hot-toast';
 import axios from 'axios';
-import { Ban, Plus, X, Users, FileText, CheckCircle2, Info, User, Calendar, Trash2, AlertCircle, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
+import { Ban, Plus, X, Users, FileText, CheckCircle2, Info, User, Calendar, Trash2, AlertCircle, ChevronDown, CheckCircle, XCircle, CheckSquare, Square } from 'lucide-react';
 import { BLACKLIST_CHARGES } from '@/lib/blacklist-charges';
 
 interface BlacklistItem {
@@ -23,6 +23,8 @@ interface BlacklistItem {
 
 export default function BlacklistPage() {
   const [blacklist, setBlacklist] = useState<BlacklistItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -148,6 +150,140 @@ export default function BlacklistPage() {
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'ไม่สามารถอัปเดตสถานะได้';
       toast.error(errorMsg);
+    }
+  };
+
+  // Bulk Actions Handlers
+  const handleToggleSelection = (id: string) => {
+    setSelectedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    const itemsWithFine = blacklist.filter((item) => item.fineAmount !== undefined && item.fineAmount > 0);
+    if (selectedItems.size === itemsWithFine.length) {
+      // Deselect all
+      setSelectedItems(new Set());
+    } else {
+      // Select all items with fine
+      setSelectedItems(new Set(itemsWithFine.map((item) => item._id)));
+    }
+  };
+
+  const handleBulkUpdatePaymentStatus = async (status: 'paid' | 'unpaid') => {
+    if (selectedItems.size === 0) {
+      toast.error('กรุณาเลือกรายการที่ต้องการอัปเดต');
+      return;
+    }
+
+    const confirmMessage = status === 'paid'
+      ? `ยืนยันการอัปเดตสถานะเป็น "ชำระค่าปรับแล้ว" สำหรับ ${selectedItems.size} รายการ?`
+      : `ยืนยันการอัปเดตสถานะเป็น "ยังไม่ชำระค่าปรับ" สำหรับ ${selectedItems.size} รายการ?`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    setBulkActionLoading(true);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('กรุณาเข้าสู่ระบบ');
+      setBulkActionLoading(false);
+      return;
+    }
+
+    try {
+      const selectedIds = Array.from(selectedItems);
+      let successCount = 0;
+      let failCount = 0;
+
+      // Update each item sequentially
+      for (const id of selectedIds) {
+        try {
+          await axios.put(
+            `/api/blacklist/${id}`,
+            { paymentStatus: status },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          successCount++;
+        } catch (error) {
+          failCount++;
+          console.error(`Failed to update item ${id}:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`อัปเดตสถานะสำเร็จ ${successCount} รายการ${failCount > 0 ? ` (ล้มเหลว ${failCount} รายการ)` : ''}`);
+      } else {
+        toast.error('ไม่สามารถอัปเดตสถานะได้');
+      }
+
+      setSelectedItems(new Set());
+      fetchBlacklist();
+    } catch (error: any) {
+      toast.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedItems.size === 0) {
+      toast.error('กรุณาเลือกรายการที่ต้องการลบ');
+      return;
+    }
+
+    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${selectedItems.size} รายการออกจากแบล็คลิส?`)) {
+      return;
+    }
+
+    setBulkActionLoading(true);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('กรุณาเข้าสู่ระบบ');
+      setBulkActionLoading(false);
+      return;
+    }
+
+    try {
+      const selectedIds = Array.from(selectedItems);
+      let successCount = 0;
+      let failCount = 0;
+
+      // Delete each item sequentially
+      for (const id of selectedIds) {
+        try {
+          await axios.delete(`/api/blacklist/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          successCount++;
+        } catch (error) {
+          failCount++;
+          console.error(`Failed to delete item ${id}:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`ลบรายการสำเร็จ ${successCount} รายการ${failCount > 0 ? ` (ล้มเหลว ${failCount} รายการ)` : ''}`);
+      } else {
+        toast.error('ไม่สามารถลบรายการได้');
+      }
+
+      setSelectedItems(new Set());
+      fetchBlacklist();
+    } catch (error: any) {
+      toast.error('เกิดข้อผิดพลาดในการลบรายการ');
+    } finally {
+      setBulkActionLoading(false);
     }
   };
 
@@ -295,12 +431,71 @@ export default function BlacklistPage() {
         <div className="animate-fade-in-delay">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gray-200 rounded-lg">
-                  <FileText className="w-5 h-5 text-gray-700" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-gray-200 rounded-lg">
+                    <FileText className="w-5 h-5 text-gray-700" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-900">รายการแบล็คลิส</h2>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">รายการแบล็คลิส</h2>
+                
+                {/* Bulk Actions */}
+                {blacklist.length > 0 && (
+                  <div className="flex items-center space-x-3">
+                    {selectedItems.size > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">เลือกแล้ว: {selectedItems.size} รายการ</span>
+                        <button
+                          onClick={() => setSelectedItems(new Set())}
+                          className="text-xs text-gray-500 hover:text-gray-700 underline"
+                          disabled={bulkActionLoading}
+                        >
+                          ล้างการเลือก
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      onClick={handleSelectAll}
+                      disabled={bulkActionLoading || blacklist.filter((item) => item.fineAmount !== undefined && item.fineAmount > 0).length === 0}
+                      className="px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="เลือกทั้งหมด (เฉพาะรายการที่มีค่าปรับ)"
+                    >
+                      {selectedItems.size === blacklist.filter((item) => item.fineAmount !== undefined && item.fineAmount > 0).length ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {/* Bulk Action Buttons */}
+              {selectedItems.size > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-300 flex items-center space-x-3 flex-wrap gap-2">
+                  <span className="text-sm font-medium text-gray-700">Bulk Actions:</span>
+                  <button
+                    onClick={() => handleBulkUpdatePaymentStatus('paid')}
+                    disabled={bulkActionLoading}
+                    className="px-4 py-2 text-sm bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span>อัปเดตเป็น "ชำระแล้ว" ({selectedItems.size})</span>
+                  </button>
+                  <button
+                    onClick={() => handleBulkUpdatePaymentStatus('unpaid')}
+                    disabled={bulkActionLoading}
+                    className="px-4 py-2 text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg border border-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    <span>อัปเดตเป็น "ยังไม่ชำระ" ({selectedItems.size})</span>
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={bulkActionLoading}
+                    className="px-4 py-2 text-sm bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>ลบที่เลือก ({selectedItems.size})</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {fetching ? (
@@ -320,15 +515,38 @@ export default function BlacklistPage() {
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {blacklist.map((item, index) => (
-                  <div
-                    key={item._id}
-                    className="p-6 hover:bg-gray-50 transition-colors duration-200 animate-fade-in"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                      {/* Name Section */}
-                      <div className="flex-1">
+                {blacklist.map((item, index) => {
+                  const isSelected = selectedItems.has(item._id);
+                  const canSelect = item.fineAmount !== undefined && item.fineAmount > 0;
+                  
+                  return (
+                    <div
+                      key={item._id}
+                      className={`p-6 transition-colors duration-200 animate-fade-in ${
+                        isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-gray-50'
+                      }`}
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                        {/* Checkbox */}
+                        {canSelect && (
+                          <div className="flex items-start pt-1">
+                            <button
+                              onClick={() => handleToggleSelection(item._id)}
+                              disabled={bulkActionLoading}
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                isSelected
+                                  ? 'bg-blue-500 border-blue-500 text-white'
+                                  : 'border-gray-300 hover:border-blue-400'
+                              }`}
+                              title={isSelected ? 'ยกเลิกเลือก' : 'เลือก'}
+                            >
+                              {isSelected && <CheckCircle className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        )}
+                        {/* Name Section */}
+                        <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-3">
                           <div className="p-2 bg-red-50 rounded-lg">
                             <Ban className="w-5 h-5 text-red-600" />
@@ -437,7 +655,8 @@ export default function BlacklistPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
