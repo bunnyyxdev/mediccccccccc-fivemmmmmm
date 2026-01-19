@@ -45,7 +45,7 @@ const PermissionSchema = new Schema<IPermission>(
 
 // Indexes
 PermissionSchema.index({ category: 1 });
-PermissionSchema.index({ code: 1 });
+// Note: code field already has unique: true, which creates an index automatically
 
 const Permission = mongoose.models.Permission || mongoose.model<IPermission>('Permission', PermissionSchema);
 

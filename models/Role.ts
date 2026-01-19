@@ -59,7 +59,7 @@ const RoleSchema = new Schema<IRole>(
 );
 
 // Indexes
-RoleSchema.index({ code: 1 });
+// Note: code field already has unique: true, which creates an index automatically
 RoleSchema.index({ isSystem: 1 });
 RoleSchema.index({ isDefault: 1 });
 
