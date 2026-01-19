@@ -40,7 +40,6 @@ export default function AnnouncementsPage() {
     title: '',
     content: '',
     category: '',
-    tags: '',
     isActive: true,
   });
 
@@ -76,9 +75,6 @@ export default function AnnouncementsPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const tagsArray = formData.tags
-        ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
-        : [];
 
       if (editingId) {
         // Update existing
@@ -88,7 +84,6 @@ export default function AnnouncementsPage() {
             title: formData.title,
             content: formData.content,
             category: formData.category || undefined,
-            tags: tagsArray,
             isActive: formData.isActive,
           },
           {
@@ -106,7 +101,6 @@ export default function AnnouncementsPage() {
             title: formData.title,
             content: formData.content,
             category: formData.category || undefined,
-            tags: tagsArray,
             isActive: formData.isActive,
           },
           {
@@ -124,7 +118,6 @@ export default function AnnouncementsPage() {
         title: '',
         content: '',
         category: '',
-        tags: '',
         isActive: true,
       });
       fetchAnnouncements();
@@ -140,7 +133,6 @@ export default function AnnouncementsPage() {
       title: announcement.title,
       content: announcement.content,
       category: announcement.category || '',
-      tags: announcement.tags?.join(', ') || '',
       isActive: announcement.isActive,
     });
     setShowForm(true);
@@ -201,85 +193,91 @@ export default function AnnouncementsPage() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Megaphone className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">สำหรับคำประกาศหมอ</h1>
-              <p className="text-sm text-gray-600">จัดการและคัดลอกคำประกาศสำหรับหมอ</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/30">
+        <div className="space-y-8 pb-8">
+          {/* Header Section */}
+          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 px-8 py-6 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+              <div className="flex items-center justify-between gap-6 relative z-10">
+                <div className="flex items-center space-x-4 flex-1 min-w-0">
+                  <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg flex-shrink-0 transform hover:scale-110 transition-transform duration-300 hover:rotate-3">
+                    <Megaphone className="w-8 h-8 text-white animate-pulse-slow" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-3xl font-bold text-white mb-1 truncate animate-in fade-in slide-in-from-left duration-700">สำหรับคำประกาศหมอ</h1>
+                    <p className="text-blue-100 text-sm truncate animate-in fade-in slide-in-from-left duration-700 delay-100">จัดการและคัดลอกคำประกาศสำหรับหมอ</p>
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      setShowForm(!showForm);
+                      if (showForm) {
+                        setEditingId(null);
+                        setFormData({
+                          title: '',
+                          content: '',
+                          category: '',
+                          isActive: true,
+                        });
+                      }
+                    }}
+                    className="inline-flex items-center px-6 py-3 bg-white text-blue-600 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl font-semibold whitespace-nowrap border-2 border-white/30 hover:border-white/50 transform hover:scale-105 active:scale-95"
+                  >
+                    <Plus className={`w-5 h-5 mr-2 flex-shrink-0 transition-transform duration-300 ${showForm ? 'rotate-45' : ''}`} />
+                    <span className="whitespace-nowrap">{showForm ? 'ยกเลิก' : 'เพิ่มคำประกาศ'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex-shrink-0">
-            <Button
-              variant="primary"
-              onClick={() => {
-                setShowForm(!showForm);
-                if (showForm) {
-                  setEditingId(null);
-                  setFormData({
-                    title: '',
-                    content: '',
-                    category: '',
-                    tags: '',
-                    isActive: true,
-                  });
-                }
-              }}
-              className="w-full sm:w-auto"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              {showForm ? 'ยกเลิก' : 'เพิ่มคำประกาศ'}
-            </Button>
-          </div>
-        </div>
 
-        {/* Form */}
-        {showForm && (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {editingId ? 'แก้ไขคำประกาศ' : 'เพิ่มคำประกาศใหม่'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  หัวข้อ *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="input w-full"
-                  placeholder="กรอกหัวข้อคำประกาศ"
-                  required
-                />
+          {/* Form */}
+          {showForm && (
+            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all duration-500 animate-in fade-in slide-in-from-top-4 scale-in-95">
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-5 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                <h2 className="text-2xl font-bold text-white relative z-10 animate-in fade-in slide-in-from-left duration-500">
+                  {editingId ? '✏️ แก้ไขคำประกาศ' : '➕ เพิ่มคำประกาศใหม่'}
+                </h2>
               </div>
+              <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <div className="animate-in fade-in slide-in-from-left duration-500 delay-100">
+                  <label className="block text-sm font-semibold text-gray-800 mb-2.5">
+                    หัวข้อ <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 outline-none bg-white hover:border-blue-400 focus:shadow-lg focus:shadow-blue-200"
+                    placeholder="กรอกหัวข้อคำประกาศ"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  เนื้อหา *
-                </label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="input w-full min-h-[150px]"
-                  placeholder="กรอกเนื้อหาคำประกาศ"
-                  required
-                />
-              </div>
+                <div className="animate-in fade-in slide-in-from-left duration-500 delay-200">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
+                    เนื้อหา <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={formData.content}
+                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 outline-none min-h-[180px] resize-y hover:border-gray-300 focus:shadow-lg focus:shadow-blue-200"
+                    placeholder="กรอกเนื้อหาคำประกาศ"
+                    required
+                  />
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="animate-in fade-in slide-in-from-left duration-500 delay-300">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
                     หมวดหมู่
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="input w-full"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 outline-none bg-white hover:border-gray-300 focus:shadow-lg focus:shadow-blue-200 cursor-pointer"
                   >
                     <option value="">เลือกหมวดหมู่</option>
                     <option value="คำประกาศโรงพยาบาล">คำประกาศโรงพยาบาล</option>
@@ -287,167 +285,174 @@ export default function AnnouncementsPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    แท็ก (คั่นด้วย comma)
-                  </label>
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl animate-in fade-in slide-in-from-left duration-500 delay-400 hover:bg-gray-100 transition-colors duration-300">
                   <input
-                    type="text"
-                    value={formData.tags}
-                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                    className="input w-full"
-                    placeholder="เช่น: สำคัญ, ด่วน, ทั่วไป"
+                    type="checkbox"
+                    id="isActive"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer transform hover:scale-110 transition-transform duration-200"
                   />
+                  <label htmlFor="isActive" className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors duration-200">
+                    เปิดใช้งานคำประกาศนี้
+                  </label>
                 </div>
-              </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4 text-primary-600 rounded"
-                />
-                <label htmlFor="isActive" className="text-sm text-gray-700">
-                  เปิดใช้งาน
-                </label>
-              </div>
-
-              <div className="flex items-center space-x-3 pt-4">
-                <Button type="submit" variant="primary">
-                  <Save className="w-5 h-5 mr-2" />
-                  {editingId ? 'บันทึกการแก้ไข' : 'บันทึก'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingId(null);
-                    setFormData({
-                      title: '',
-                      content: '',
-                      category: '',
-                      tags: '',
-                      isActive: true,
-                    });
-                  }}
-                >
-                  <X className="w-5 h-5 mr-2" />
-                  ยกเลิก
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Announcements List */}
-        <div className="space-y-4">
-          {announcements.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-              <Megaphone className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">ยังไม่มีคำประกาศ</p>
-              <p className="text-gray-400 text-sm mt-2">คลิกปุ่ม "เพิ่มคำประกาศ" เพื่อเริ่มต้น</p>
+                <div className="flex items-center gap-4 pt-4 border-t border-gray-200 animate-in fade-in slide-in-from-bottom duration-500 delay-500">
+                  <button
+                    type="submit"
+                    className="flex-1 flex flex-col items-center justify-center px-6 py-4 bg-gradient-to-br from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 hover:-translate-y-1"
+                  >
+                    <Save className="w-6 h-6 mb-2 animate-bounce-slow" />
+                    <span>{editingId ? 'บันทึกการแก้ไข' : 'บันทึกคำประกาศ'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForm(false);
+                      setEditingId(null);
+                      setFormData({
+                        title: '',
+                        content: '',
+                        category: '',
+                        isActive: true,
+                      });
+                    }}
+                    className="flex-1 flex flex-col items-center justify-center px-6 py-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 hover:-translate-y-1"
+                  >
+                    <X className="w-6 h-6 mb-2" />
+                    <span>ยกเลิก</span>
+                  </button>
+                </div>
+              </form>
             </div>
-          ) : (
-            announcements.map((announcement) => (
-              <div
-                key={announcement._id}
-                className={`bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden ${
-                  !announcement.isActive ? 'opacity-60' : ''
-                }`}
-              >
-                {/* Header Section */}
-                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4 border-b border-gray-200">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                    <div className="flex-1">
-                      {/* Title */}
-                      <div className="flex items-start gap-3 mb-3">
-                        <h3 className="text-xl font-bold text-gray-900 flex-1">
-                          {announcement.title || 'ไม่มีหัวข้อ'}
-                        </h3>
-                        {!announcement.isActive && (
-                          <span className="px-3 py-1 text-xs font-medium bg-gray-200 text-gray-700 rounded-full whitespace-nowrap">
-                            ปิดใช้งาน
-                          </span>
-                        )}
+          )}
+
+          {/* Announcements List */}
+          <div className="space-y-6">
+            {announcements.length === 0 ? (
+              <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-16 text-center">
+                <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full mb-6">
+                  <Megaphone className="w-12 h-12 text-blue-500" />
+                </div>
+                <p className="text-gray-700 text-xl font-semibold mb-2">ยังไม่มีคำประกาศ</p>
+                <p className="text-gray-400 text-sm">คลิกปุ่ม "เพิ่มคำประกาศ" เพื่อเริ่มต้น</p>
+              </div>
+            ) : (
+              announcements.map((announcement, index) => (
+                <div
+                  key={announcement._id}
+                  className={`bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden transform transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02] ${
+                    !announcement.isActive ? 'opacity-60' : ''
+                  } animate-in fade-in slide-in-from-bottom duration-500`}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {/* Header Section */}
+                  <div className={`px-8 py-6 ${
+                    announcement.category === 'คำประกาศโรงพยาบาล' 
+                      ? 'bg-gradient-to-r from-red-500 to-pink-500' 
+                      : announcement.category === 'คำประกาศสตอรี่'
+                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
+                      : 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                  }`}>
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      <div className="flex-1">
+                        {/* Title */}
+                        <div className="flex items-start gap-4 mb-4">
+                          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                            <Megaphone className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-2xl font-bold text-white mb-2 leading-tight">
+                              {announcement.title || 'ไม่มีหัวข้อ'}
+                            </h3>
+                            {!announcement.isActive && (
+                              <span className="inline-block px-3 py-1 text-xs font-semibold bg-white/30 text-white rounded-full backdrop-blur-sm">
+                                ปิดใช้งาน
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Category and Tags */}
+                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                          {announcement.category && (
+                            <span className="inline-flex items-center px-4 py-1.5 text-sm font-semibold bg-white/20 backdrop-blur-sm text-white rounded-full border border-white/30">
+                              {announcement.category}
+                            </span>
+                          )}
+                          {announcement.tags && announcement.tags.length > 0 && (
+                            <>
+                              {announcement.tags.map((tag, tagIndex) => (
+                                <span
+                                  key={tagIndex}
+                                  className="inline-flex items-center px-3 py-1 text-xs font-medium bg-white/20 backdrop-blur-sm text-white rounded-full border border-white/30"
+                                >
+                                  <Tag className="w-3 h-3 mr-1.5" />
+                                  {tag}
+                                </span>
+                              ))}
+                            </>
+                          )}
+                        </div>
                       </div>
                       
-                      {/* Category and Tags */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        {announcement.category && (
-                          <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-blue-500 text-white rounded-full">
-                            {announcement.category}
-                          </span>
-                        )}
-                        {announcement.tags && announcement.tags.length > 0 && (
-                          <>
-                            {announcement.tags.map((tag, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-3 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full"
-                              >
-                                <Tag className="w-3 h-3 mr-1.5" />
-                                {tag}
-                              </span>
-                            ))}
-                          </>
-                        )}
-                        {(!announcement.category && (!announcement.tags || announcement.tags.length === 0)) && (
-                          <span className="text-xs text-gray-400 italic">ไม่มีหมวดหมู่และแท็ก</span>
-                        )}
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleCopy(announcement.content, announcement._id)}
+                          className="p-3 text-white hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/30 hover:border-white/50 hover:scale-110"
+                          title="คัดลอกเนื้อหา"
+                        >
+                          {copiedId === announcement._id ? (
+                            <Check className="w-5 h-5 text-green-200" />
+                          ) : (
+                            <Copy className="w-5 h-5" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(announcement)}
+                          className="p-3 text-white hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/30 hover:border-white/50 hover:scale-110"
+                          title="แก้ไข"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(announcement._id)}
+                          className="p-3 text-white hover:bg-red-500/30 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/30 hover:border-red-400/50 hover:scale-110"
+                          title="ลบ"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => handleCopy(announcement.content, announcement._id)}
-                        className="p-2.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 border border-transparent hover:border-green-200"
-                        title="คัดลอกเนื้อหา"
-                      >
-                        {copiedId === announcement._id ? (
-                          <Check className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Copy className="w-5 h-5" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleEdit(announcement)}
-                        className="p-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200"
-                        title="แก้ไข"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(announcement._id)}
-                        className="p-2.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-transparent hover:border-red-200"
-                        title="ลบ"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                  </div>
+
+                  {/* Content Section */}
+                  <div className="p-8">
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl p-6 mb-6 border border-gray-200 shadow-inner">
+                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-base">
+                        {announcement.content || 'ไม่มีเนื้อหา'}
+                      </p>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 border-t border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                          {announcement.createdByName.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">
+                          สร้างโดย <span className="text-gray-900">{announcement.createdByName}</span>
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-500 font-medium">{formatDate(announcement.createdAt)}</span>
                     </div>
                   </div>
                 </div>
-
-                {/* Content Section */}
-                <div className="p-6">
-                  <div className="bg-gray-50 rounded-lg p-5 mb-4 border border-gray-100">
-                    <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                      {announcement.content || 'ไม่มีเนื้อหา'}
-                    </p>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-500 pt-4 border-t border-gray-100">
-                    <span className="font-medium">สร้างโดย: <span className="text-gray-700">{announcement.createdByName}</span></span>
-                    <span>{formatDate(announcement.createdAt)}</span>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
     </Layout>
