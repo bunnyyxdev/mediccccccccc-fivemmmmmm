@@ -63,7 +63,7 @@ export default function RootLayout({
       <body className={notoSansThai.className}>
         {/* Mourning Ribbon - Top Right */}
         <img 
-          src="https://raw.githubusercontent.com/bunnyyxdev/appzstory-ribbon/main/black_ribbon_top_right.png" 
+          src="https://raw.githubusercontent.com/appzstory/appzstory-ribbon/main/black_ribbon_top_right.png" 
           alt="Black Ribbon Top Right" 
           style={{
             position: 'fixed',
