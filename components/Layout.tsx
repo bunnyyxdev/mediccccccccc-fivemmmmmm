@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import { verifyToken } from '@/lib/auth';
 
@@ -13,6 +13,7 @@ interface LayoutProps {
 
 export default function Layout({ children, requireAuth = true, requireRole }: LayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const initializedRef = useRef(false);
@@ -34,7 +35,9 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
     if (!token || !userStr) {
       setLoading(false);
       initializedRef.current = true;
-      router.push('/login');
+      if (pathname !== '/login') {
+        router.push('/login');
+      }
       return;
     }
 
@@ -50,7 +53,9 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
         localStorage.removeItem('user');
         setLoading(false);
         initializedRef.current = true;
-        router.push('/login');
+        if (pathname !== '/login') {
+          router.push('/login');
+        }
         return;
       }
 
@@ -58,7 +63,9 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
       if (requireRole && userData.role !== requireRole) {
         setLoading(false);
         initializedRef.current = true;
-        router.push('/dashboard');
+        if (pathname !== '/dashboard') {
+          router.push('/dashboard');
+        }
         return;
       }
 
@@ -71,9 +78,12 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
       localStorage.removeItem('user');
       setLoading(false);
       initializedRef.current = true;
-      router.push('/login');
+      if (pathname !== '/login') {
+        router.push('/login');
+      }
     }
-  }, [requireAuth, requireRole, router]); // Only run when auth requirements change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   const handleLogout = () => {
     localStorage.removeItem('token');
