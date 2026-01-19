@@ -255,7 +255,7 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Profile Image Section */}
-          <div className="animate-fade-in-delay">
+          <div>
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center space-x-3">
@@ -326,7 +326,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Change Password Form */}
-          <div className="animate-fade-in-delay" style={{ animationDelay: '0.1s' }}>
+          <div>
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center space-x-3">
