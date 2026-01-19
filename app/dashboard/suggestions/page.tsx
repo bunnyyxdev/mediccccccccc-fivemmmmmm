@@ -172,7 +172,7 @@ export default function SuggestionsPage() {
     <Layout requireAuth={true}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header Section */}
-        <div className="mb-8 animate-fade-in">
+        <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-lg">
@@ -200,7 +200,7 @@ export default function SuggestionsPage() {
 
         {/* Form Section */}
         {showForm && (
-          <div className="mb-8 animate-slide-down">
+          <div className="mb-8">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
                 <div className="flex items-center justify-between">
