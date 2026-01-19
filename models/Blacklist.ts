@@ -15,6 +15,7 @@ export interface IBlacklist extends Document {
   paidAt?: Date;
   paidBy?: mongoose.Types.ObjectId;
   paidByName?: string;
+  incidentDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,6 +83,9 @@ const BlacklistSchema: Schema = new Schema(
     },
     paidByName: {
       type: String,
+    },
+    incidentDate: {
+      type: Date,
     },
   },
   {

@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { Clock, Filter, Download, ArrowUpDown, ArrowUp, ArrowDown, Trash2, FileJson, FileSpreadsheet, BarChart3, TrendingUp } from 'lucide-react';
+import DatePickerV2 from '@/components/DatePickerV2';
 
 interface ActivityLog {
   _id: string;
@@ -407,24 +408,17 @@ export default function ActivityLogPage() {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label>
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label>
-              <input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
-              />
-            </div>
+            <DatePickerV2
+              label="วันที่เริ่มต้น"
+              value={filters.startDate}
+              onChange={(date) => setFilters({ ...filters, startDate: date })}
+            />
+            <DatePickerV2
+              label="วันที่สิ้นสุด"
+              value={filters.endDate}
+              onChange={(date) => setFilters({ ...filters, endDate: date })}
+              minDate={filters.startDate}
+            />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">ค้นหา</label>
               <input

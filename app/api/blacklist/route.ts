@@ -58,6 +58,7 @@ async function handlerGET(request: NextRequest, user: any) {
         paidAt: item.paidAt,
         paidBy: item.paidBy?.toString(),
         paidByName: item.paidByName,
+        incidentDate: item.incidentDate,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
       })),
@@ -78,7 +79,7 @@ async function handlerPOST(request: NextRequest, user: any) {
     await connectDB();
 
     const body = await request.json();
-    const { name, charge, reason, fineAmount, category, severity, expiresAt, notes } = body;
+    const { name, charge, reason, fineAmount, incidentDate, category, severity, expiresAt, notes } = body;
 
     if (!name || !charge) {
       return NextResponse.json(
@@ -107,6 +108,7 @@ async function handlerPOST(request: NextRequest, user: any) {
       notes: notes?.trim(),
       fineAmount: fineAmount ? parseFloat(fineAmount) : undefined,
       paymentStatus: 'unpaid',
+      incidentDate: incidentDate ? new Date(incidentDate) : undefined,
     });
 
     // Log activity
@@ -147,10 +149,14 @@ async function handlerPOST(request: NextRequest, user: any) {
         discordMessage += `**ค่าปรับ:** ${blacklistItem.fineAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท\n`;
       }
       
+      if (blacklistItem.incidentDate) {
+        discordMessage += `**วันที่เกิดเหตุ:** ${new Date(blacklistItem.incidentDate).toLocaleDateString('th-TH')}\n`;
+      }
+      
       discordMessage += `**หมวดหมู่:** ${blacklistItem.category}\n`;
       discordMessage += `**ระดับความรุนแรง:** ${blacklistItem.severity}\n`;
       discordMessage += `**เพิ่มโดย:** ${userDoc.name}\n`;
-      discordMessage += `**วันที่:** ${new Date(blacklistItem.createdAt).toLocaleString('th-TH')}\n`;
+      discordMessage += `**วันที่บันทึก:** ${new Date(blacklistItem.createdAt).toLocaleString('th-TH')}\n`;
       
       if (blacklistItem.expiresAt) {
         discordMessage += `**วันหมดอายุ:** ${new Date(blacklistItem.expiresAt).toLocaleDateString('th-TH')}\n`;

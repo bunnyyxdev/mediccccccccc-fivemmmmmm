@@ -1,6 +1,6 @@
 // Service Worker for Offline Support
-const CACHE_NAME = 'preview-city-medic-v3';
-const RUNTIME_CACHE = 'preview-city-medic-runtime-v3';
+const CACHE_NAME = 'preview-city-medic-v4';
+const RUNTIME_CACHE = 'preview-city-medic-runtime-v4';
 
 // Assets to cache on install
 // Note: manifest.json is NOT cached - always fetch from network

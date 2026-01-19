@@ -7,6 +7,8 @@ import Alert from '@/components/Alert';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { Clock, Plus, Users, User, Calendar, FileText, CheckCircle2, X, Info, Activity } from 'lucide-react';
+import DatePickerV2 from '@/components/DatePickerV2';
+import CustomTimePicker from '@/components/TimePicker';
 
 interface TimeTrackingRecord {
   _id: string;
@@ -191,38 +193,26 @@ export default function TimeTrackingPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">วันที่ *</label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
-                    />
-                  </div>
+                  <DatePickerV2
+                    label="วันที่ *"
+                    value={formData.date}
+                    onChange={(date) => setFormData({ ...formData, date })}
+                    required
+                  />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">เวลาเริ่มต้น *</label>
-                      <input
-                        type="time"
-                        required
-                        value={formData.startTime}
-                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">เวลาสิ้นสุด *</label>
-                      <input
-                        type="time"
-                        required
-                        value={formData.endTime}
-                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
+                    <CustomTimePicker
+                      label="เวลาเริ่มต้น *"
+                      value={formData.startTime}
+                      onChange={(time) => setFormData({ ...formData, startTime: time || '' })}
+                      required
+                    />
+                    <CustomTimePicker
+                      label="เวลาสิ้นสุด *"
+                      value={formData.endTime}
+                      onChange={(time) => setFormData({ ...formData, endTime: time || '' })}
+                      required
+                    />
                   </div>
 
                   <div>

@@ -7,7 +7,7 @@ import Alert from '@/components/Alert';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { FileText, Plus, Filter, Search, X, ChevronDown, Calendar, User, AlertCircle } from 'lucide-react';
-import CustomDatePicker from '@/components/DatePicker';
+import DatePickerV2 from '@/components/DatePickerV2';
 import Select from '@/components/Select';
 
 interface Doctor {
@@ -238,7 +238,7 @@ export default function DisciplinePage() {
 
                 {/* Violation Date */}
                 <div className="animate-slide-in-left" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
-                  <CustomDatePicker
+                  <DatePickerV2
                     label="วันที่กระทำผิด"
                     value={formData.violationDate}
                     onChange={(date) => setFormData({ ...formData, violationDate: date })}
@@ -336,24 +336,17 @@ export default function DisciplinePage() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label>
-                <input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label>
-                <input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-200"
-                />
-              </div>
+              <DatePickerV2
+                label="วันที่เริ่มต้น"
+                value={filters.startDate}
+                onChange={(date) => setFilters({ ...filters, startDate: date })}
+              />
+              <DatePickerV2
+                label="วันที่สิ้นสุด"
+                value={filters.endDate}
+                onChange={(date) => setFilters({ ...filters, endDate: date })}
+                minDate={filters.startDate}
+              />
             </div>
           </div>
         </div>

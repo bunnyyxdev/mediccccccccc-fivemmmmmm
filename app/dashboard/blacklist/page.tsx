@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { Ban, Plus, X, Users, FileText, CheckCircle2, Info, User, Calendar, Trash2, AlertCircle, ChevronDown, CheckCircle, XCircle, CheckSquare, Square } from 'lucide-react';
 import { BLACKLIST_CHARGES } from '@/lib/blacklist-charges';
+import DatePickerV2 from '@/components/DatePickerV2';
 
 interface BlacklistItem {
   _id: string;
@@ -17,6 +18,7 @@ interface BlacklistItem {
   paymentStatus?: 'unpaid' | 'paid';
   paidAt?: string;
   paidByName?: string;
+  incidentDate?: string;
   createdAt: string;
   addedByName: string;
 }
@@ -31,6 +33,7 @@ export default function BlacklistPage() {
     charge: '', // ข้อหาจาก dropdown
     reason: '', // รายละเอียดเพิ่มเติม (optional)
     fineAmount: '', // ราคาค่าปรับ
+    incidentDate: '', // วันที่เกิดเหตุ
   });
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -78,6 +81,7 @@ export default function BlacklistPage() {
           charge: formData.charge,
           reason: formData.reason,
           fineAmount: formData.fineAmount || undefined,
+          incidentDate: formData.incidentDate || undefined,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -85,7 +89,7 @@ export default function BlacklistPage() {
       );
 
       toast.success('เพิ่มในแบล็คลิสสำเร็จ');
-      setFormData({ name: '', charge: '', reason: '', fineAmount: '' });
+      setFormData({ name: '', charge: '', reason: '', fineAmount: '', incidentDate: '' });
       setShowForm(false);
       fetchBlacklist(); // Refresh list
     } catch (error: any) {
@@ -330,7 +334,7 @@ export default function BlacklistPage() {
                   <button
                     onClick={() => {
                       setShowForm(false);
-                      setFormData({ name: '', charge: '', reason: '', fineAmount: '' });
+                      setFormData({ name: '', charge: '', reason: '', fineAmount: '', incidentDate: '' });
                     }}
                     className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
                   >
@@ -340,15 +344,24 @@ export default function BlacklistPage() {
               </div>
               <div className="p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">ชื่อ *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-                      placeholder="กรอกชื่อ"
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">ชื่อ *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                        placeholder="กรอกชื่อ"
+                      />
+                    </div>
+                    <DatePickerV2
+                      label="วันที่เกิดเหตุ"
+                      value={formData.incidentDate}
+                      onChange={(date) => setFormData({ ...formData, incidentDate: date })}
+                      placeholder="เลือกวันที่เกิดเหตุ"
+                      disablePastDates={false}
                     />
                   </div>
                   <div>
@@ -602,8 +615,18 @@ export default function BlacklistPage() {
                             </div>
                           </div>
                         )}
-                        <div className="mt-2 text-xs text-gray-500">
-                          เพิ่มโดย: {item.addedByName}
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                          {item.incidentDate && (
+                            <div className="flex items-center space-x-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>วันที่เกิดเหตุ: {new Date(item.incidentDate).toLocaleDateString('th-TH', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}</span>
+                            </div>
+                          )}
+                          <span>เพิ่มโดย: {item.addedByName}</span>
                         </div>
                       </div>
 

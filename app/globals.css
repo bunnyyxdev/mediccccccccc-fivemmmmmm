@@ -2,6 +2,104 @@
 @tailwind components;
 @tailwind utilities;
 
+/* react-day-picker styles */
+.rdp {
+  --rdp-cell-size: 36px;
+  --rdp-accent-color: #2563eb;
+  --rdp-background-color: #eff6ff;
+  --rdp-accent-color-dark: #1e40af;
+  --rdp-background-color-dark: #1e3a8a;
+  --rdp-outline: 2px solid var(--rdp-accent-color);
+  --rdp-outline-selected: 2px solid var(--rdp-accent-color);
+  margin: 0;
+}
+
+/* react-time-picker styles */
+.react-time-picker {
+  display: inline-flex;
+  position: relative;
+}
+
+.react-time-picker__wrapper {
+  display: flex;
+  flex-grow: 1;
+  flex-shrink: 0;
+  border: none;
+}
+
+.react-time-picker__inputGroup {
+  min-width: calc((4px * 3) + 0.54em * 6 + 0.217em * 2);
+  flex-grow: 1;
+  padding: 0 2px;
+  box-sizing: content-box;
+}
+
+.react-time-picker__inputGroup__input {
+  min-width: 0.54em;
+  height: 100%;
+  position: relative;
+  padding: 0 1px;
+  border: 0;
+  background: none;
+  font: inherit;
+  box-sizing: content-box;
+  -moz-appearance: textfield;
+}
+
+.react-time-picker__inputGroup__input::-webkit-outer-spin-button,
+.react-time-picker__inputGroup__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.react-time-picker__inputGroup__input:invalid {
+  background: rgba(255, 0, 0, 0.1);
+}
+
+.react-time-picker__inputGroup__divider {
+  padding: 0 2px;
+}
+
+.react-time-picker__inputGroup__leadingZero {
+  display: inline-block;
+}
+
+.react-time-picker__button {
+  border: 0;
+  background: transparent;
+  padding: 4px 6px;
+}
+
+.react-time-picker__button:enabled {
+  cursor: pointer;
+}
+
+.react-time-picker__button:enabled:hover .react-time-picker__button__icon,
+.react-time-picker__button:enabled:focus .react-time-picker__button__icon {
+  stroke: #2563eb;
+}
+
+.react-time-picker__button:disabled .react-time-picker__button__icon {
+  stroke: #6b7280;
+}
+
+.react-time-picker__button svg {
+  display: inherit;
+}
+
+.react-time-picker__clock {
+  display: none;
+  width: 200px;
+  height: 200px;
+  top: 100%;
+  left: 0;
+  z-index: 1;
+}
+
+.react-time-picker__clock--closed {
+  display: none;
+}
+
 /* PWA and Mobile Support */
 @media (display-mode: standalone) {
   body {

@@ -5,7 +5,7 @@ import Layout from '@/components/Layout';
 import Button from '@/components/Button';
 import toast from 'react-hot-toast';
 import { X, FileText, Users, Calendar, Info } from 'lucide-react';
-import DatePicker from '@/components/DatePicker';
+import DatePickerV2 from '@/components/DatePickerV2';
 import axios from 'axios';
 
 const TEAM_TYPES = [
@@ -434,11 +434,12 @@ export default function StoryPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">----- การเจรจา -----</h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">วันที่ *</label>
-                      <DatePicker
+                      <DatePickerV2
+                        label="วันที่ *"
                         value={logStoryData.negotiation.date}
                         onChange={(date) => setLogStoryData({ ...logStoryData, negotiation: { ...logStoryData.negotiation, date } })}
                         placeholder="เลือกวันที่การเจรจา"
+                        required
                       />
                     </div>
                     <div>
@@ -480,19 +481,20 @@ export default function StoryPage() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label>
-                        <DatePicker
+                        <DatePickerV2
+                          label="วันที่เริ่มต้น"
                           value={logStoryData.fieldWork.startDate}
                           onChange={(date) => setLogStoryData({ ...logStoryData, fieldWork: { ...logStoryData.fieldWork, startDate: date } })}
                           placeholder="เลือกวันที่เริ่มต้น"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label>
-                        <DatePicker
+                        <DatePickerV2
+                          label="วันที่สิ้นสุด"
                           value={logStoryData.fieldWork.endDate}
                           onChange={(date) => setLogStoryData({ ...logStoryData, fieldWork: { ...logStoryData.fieldWork, endDate: date } })}
                           placeholder="เลือกวันที่สิ้นสุด"
+                          minDate={logStoryData.fieldWork.startDate}
                         />
                       </div>
                     </div>

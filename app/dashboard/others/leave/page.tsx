@@ -23,7 +23,7 @@ import {
   X,
   FileText
 } from 'lucide-react';
-import CustomDatePicker from '@/components/DatePicker';
+import DatePickerV2 from '@/components/DatePickerV2';
 
 interface Leave {
   _id: string;
@@ -256,7 +256,7 @@ export default function LeavePage() {
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <CustomDatePicker
+                    <DatePickerV2
                       label="วันเริ่มต้นลา"
                       value={formData.startDate}
                       onChange={(date) => setFormData({ ...formData, startDate: date })}
@@ -265,7 +265,7 @@ export default function LeavePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <CustomDatePicker
+                    <DatePickerV2
                       label="วันสิ้นสุดลา"
                       value={formData.endDate}
                       onChange={(date) => setFormData({ ...formData, endDate: date })}
