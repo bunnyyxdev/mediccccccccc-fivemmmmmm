@@ -346,7 +346,7 @@ export default function AnnouncementsPage() {
                     <Megaphone className="w-8 h-8 text-white animate-pulse-slow" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h1 className="text-3xl font-bold text-white mb-1 truncate animate-in fade-in slide-in-from-left duration-700">สำหรับคำประกาศหมอ</h1>
+                    <h1 className="text-xl font-bold text-white mb-1 truncate animate-in fade-in slide-in-from-left duration-700">สำหรับคำประกาศหมอ</h1>
                     <p className="text-blue-100 text-sm truncate animate-in fade-in slide-in-from-left duration-700 delay-100">
                       จัดการและคัดลอกคำประกาศสำหรับหมอ
                     </p>
