@@ -141,7 +141,7 @@ export default function ProfilePage() {
     <Layout requireAuth={true}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header Section */}
-        <div className="mb-8 animate-fade-in">
+        <div className="mb-8">
           <div className="flex items-center space-x-3 mb-2">
             <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
               <UserCircle className="w-6 h-6 text-white" />
@@ -155,7 +155,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-delay">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ID Card Section */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
@@ -260,7 +260,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Additional Info Section */}
-        <div className="mt-6 animate-fade-in-delay">
+        <div className="mt-6">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
               <div className="flex items-center space-x-3">

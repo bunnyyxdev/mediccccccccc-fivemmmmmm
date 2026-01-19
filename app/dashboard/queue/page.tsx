@@ -491,7 +491,7 @@ export default function QueuePage() {
 
           {/* Elapsed Time */}
           {isRunning && (
-            <div className="flex justify-center mb-6 animate-fade-in">
+            <div className="flex justify-center mb-6">
               <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md border border-blue-600 p-4 max-w-md w-full transition-all duration-300">
                 <label className="block text-xs font-semibold text-blue-100 mb-2 uppercase tracking-wide">⏱️ รวมเวลารันคิว</label>
                 <div className="text-white font-bold text-xl text-center">{formatTime(elapsedTime)}</div>
@@ -501,7 +501,7 @@ export default function QueuePage() {
 
           {/* Current Queue */}
           {isRunning && currentDoctor && (
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg border-2 border-blue-600 p-6 mb-6 transform transition-all duration-300 hover:scale-[1.02] animate-fade-in">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg border-2 border-blue-600 p-6 mb-6 transform transition-all duration-300 hover:scale-[1.02]">
               <label className="block text-xs font-semibold text-blue-100 mb-3 uppercase tracking-wide">🔄 คิวปัจจุบัน</label>
               <div className="text-center">
                 <div className="text-white text-3xl font-bold mb-2">{currentDoctor.name}</div>
@@ -649,7 +649,7 @@ export default function QueuePage() {
 
       {/* Edit Modal */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg border border-cyan-400 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-scale-in">
             <div className="flex items-center justify-between p-6 border-b border-gray-700">
               <h2 className="text-2xl font-bold text-cyan-400">แก้ไขคิว</h2>

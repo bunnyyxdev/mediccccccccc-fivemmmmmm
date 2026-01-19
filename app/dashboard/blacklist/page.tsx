@@ -319,7 +319,7 @@ export default function BlacklistPage() {
 
         {/* Form Section */}
         {showForm && (
-          <div className="mb-8 animate-slide-down">
+          <div className="mb-8">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -428,7 +428,7 @@ export default function BlacklistPage() {
         )}
 
         {/* History Section */}
-        <div className="animate-fade-in-delay">
+        <div>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -522,7 +522,7 @@ export default function BlacklistPage() {
                   return (
                     <div
                       key={item._id}
-                      className={`p-6 transition-colors duration-200 animate-fade-in ${
+                      className={`p-6 transition-colors duration-200 ${
                         isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-gray-50'
                       }`}
                       style={{ animationDelay: `${index * 0.1}s` }}

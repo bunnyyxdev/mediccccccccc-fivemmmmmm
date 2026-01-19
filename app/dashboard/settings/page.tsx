@@ -239,7 +239,7 @@ export default function SettingsPage() {
     <Layout requireAuth={true}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header Section */}
-        <div className="mb-8 animate-fade-in">
+        <div className="mb-8">
           <div className="flex items-center space-x-3 mb-2">
             <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
               <Settings className="w-6 h-6 text-white" />
