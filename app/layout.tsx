@@ -61,6 +61,20 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
       </head>
       <body className={notoSansThai.className}>
+        {/* Mourning Ribbon - Top Right */}
+        <img 
+          src="https://raw.githubusercontent.com/bunnyyxdev/appzstory-ribbon/main/black_ribbon_top_right.png" 
+          alt="Black Ribbon Top Right" 
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            width: '80px',
+            opacity: 0.9,
+            zIndex: 9999,
+            pointerEvents: 'none',
+          }}
+        />
         {children}
         <Toaster position="top-right" />
         <Script id="sw-register" strategy="afterInteractive">
