@@ -22,13 +22,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', sizes: 'any' },
     ],
     apple: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
-    ],
-    shortcut: [
-      { url: '/favicon.ico' },
     ],
   },
 };
@@ -51,8 +47,6 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json?v=3" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="shortcut icon" href="/favicon.ico" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

@@ -115,7 +115,7 @@ const menuItems: MenuItem[] = [
   {
     label: 'กฏหมอ',
     icon: BookOpen,
-    href: 'https://simple.com',
+    href: 'https://sites.google.com/view/marinarules/marina-medic?authuser=0',
     external: true,
     roles: ['doctor', 'admin'] as const,
   },

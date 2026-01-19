@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import Button from '@/components/Button';
 import toast from 'react-hot-toast';
@@ -15,6 +15,7 @@ import {
   X,
   Save,
   Tag,
+  RefreshCw,
 } from 'lucide-react';
 
 interface Announcement {
@@ -33,22 +34,49 @@ interface Announcement {
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const formData = useState({
     title: '',
     content: '',
     category: '',
     isActive: true,
   });
+  const [formDataState, setFormData] = formData;
+  
+  // Use refs to track previous state for change detection
+  const previousAnnouncementsRef = useRef<string>('');
+  const previousCountRef = useRef<number>(0);
+  const announcementsRef = useRef<Announcement[]>([]);
+  const isFetchingRef = useRef<boolean>(false);
+  const hasInitialFetchRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    fetchAnnouncements();
-  }, []);
-
-  const fetchAnnouncements = async () => {
+  // Memoize fetchAnnouncements to prevent infinite loops
+  const fetchAnnouncements = useCallback(async (showLoading = true, force = false) => {
+    // Prevent multiple simultaneous calls
+    if (isFetchingRef.current) {
+      console.log('🚫 Blocked: Already fetching');
+      return;
+    }
+    
+    // Prevent automatic calls after initial fetch (only allow manual refreshes)
+    if (!force && hasInitialFetchRef.current) {
+      console.log('🚫 Blocked: Initial fetch already done, force=false');
+      return;
+    }
+    
+    console.log('✅ Fetching announcements', { force, hasInitialFetch: hasInitialFetchRef.current });
+    isFetchingRef.current = true;
+    
     try {
+      if (showLoading) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+
       const token = localStorage.getItem('token');
       // Fetch ALL announcements from database - all users can see all announcements
       const response = await axios.get('/api/announcements', {
@@ -56,19 +84,130 @@ export default function AnnouncementsPage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      setAnnouncements(response.data.announcements || []);
+      
+      const newAnnouncements = response.data.announcements || [];
+      
+      // Create a checksum from announcement IDs and updatedAt timestamps for accurate change detection
+      const newChecksum = JSON.stringify(
+        newAnnouncements.map(a => ({ id: a._id, updatedAt: a.updatedAt }))
+      );
+      const previousChecksum = previousAnnouncementsRef.current;
+      
+      // Detect changes: new announcements, updates, or deletions
+      const hasChanges = previousChecksum !== '' && newChecksum !== previousChecksum;
+      const previousCount = previousCountRef.current;
+      const newCount = newAnnouncements.length;
+      
+      // Detect new announcements (count increased)
+      if (!showLoading && hasChanges && newCount > previousCount && previousCount > 0) {
+        const newAnnouncement = newAnnouncements[0]; // Most recent one
+        toast.success(`📢 มีคำประกาศใหม่: ${newAnnouncement.title}`, {
+          duration: 5000,
+          icon: '📢',
+          position: 'top-right',
+        });
+      }
+      
+      // Detect updates to existing announcements
+      if (!showLoading && hasChanges && newCount === previousCount && previousChecksum !== '') {
+        // Check if any announcement was updated (not just reordered)
+        const previousAnnouncements = announcementsRef.current;
+        const updatedAnnouncement = newAnnouncements.find((newAnn: Announcement) => {
+          const oldAnn = previousAnnouncements.find((old: Announcement) => old._id === newAnn._id);
+          return oldAnn && oldAnn.updatedAt !== newAnn.updatedAt;
+        });
+        
+        if (updatedAnnouncement) {
+          toast(`✏️ คำประกาศถูกอัปเดต: ${updatedAnnouncement.title}`, {
+            duration: 4000,
+            position: 'top-right',
+            icon: '✏️',
+          });
+        }
+      }
+      
+      // Detect deletions
+      if (!showLoading && hasChanges && newCount < previousCount && previousCount > 0) {
+        toast('🗑️ มีคำประกาศถูกลบ', {
+          duration: 3000,
+          position: 'top-right',
+          icon: '🗑️',
+        });
+      }
+      
+      // Update state and refs
+      setAnnouncements(newAnnouncements);
+      announcementsRef.current = newAnnouncements;
+      previousAnnouncementsRef.current = newChecksum;
+      previousCountRef.current = newCount;
+      hasInitialFetchRef.current = true; // Mark that initial fetch is complete
     } catch (error: any) {
-      toast.error('ไม่สามารถโหลดคำประกาศได้');
+      if (showLoading) {
+        toast.error('ไม่สามารถโหลดคำประกาศได้');
+      }
       console.error('Error fetching announcements:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      isFetchingRef.current = false;
     }
-  };
+  }, []); // Empty dependency array - function doesn't depend on any state
+
+  useEffect(() => {
+    // Only fetch on initial mount, prevent React Strict Mode double calls
+    if (!hasInitialFetchRef.current) {
+      fetchAnnouncements(true, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const main = document.querySelector('main');
+    
+    // Completely disable scrolling
+    html.style.overflow = 'hidden';
+    html.style.height = '100vh';
+    html.style.maxHeight = '100vh';
+    html.style.position = 'fixed';
+    html.style.width = '100%';
+    
+    body.style.overflow = 'hidden';
+    body.style.height = '100vh';
+    body.style.maxHeight = '100vh';
+    body.style.position = 'fixed';
+    body.style.width = '100%';
+    
+    if (main) {
+      (main as HTMLElement).style.overflow = 'hidden';
+      (main as HTMLElement).style.height = '100vh';
+      (main as HTMLElement).style.maxHeight = '100vh';
+    }
+    
+    return () => {
+      html.style.overflow = '';
+      html.style.height = '';
+      html.style.maxHeight = '';
+      html.style.position = '';
+      html.style.width = '';
+      body.style.overflow = '';
+      body.style.height = '';
+      body.style.maxHeight = '';
+      body.style.position = '';
+      body.style.width = '';
+      if (main) {
+        (main as HTMLElement).style.overflow = '';
+        (main as HTMLElement).style.height = '';
+        (main as HTMLElement).style.maxHeight = '';
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title.trim() || !formData.content.trim()) {
+    if (!formDataState.title.trim() || !formDataState.content.trim()) {
       toast.error('กรุณากรอกหัวข้อและเนื้อหา');
       return;
     }
@@ -81,10 +220,10 @@ export default function AnnouncementsPage() {
         await axios.put(
           `/api/announcements/${editingId}`,
           {
-            title: formData.title,
-            content: formData.content,
-            category: formData.category || undefined,
-            isActive: formData.isActive,
+            title: formDataState.title,
+            content: formDataState.content,
+            category: formDataState.category || undefined,
+            isActive: formDataState.isActive,
           },
           {
             headers: {
@@ -98,10 +237,10 @@ export default function AnnouncementsPage() {
         await axios.post(
           '/api/announcements',
           {
-            title: formData.title,
-            content: formData.content,
-            category: formData.category || undefined,
-            isActive: formData.isActive,
+            title: formDataState.title,
+            content: formDataState.content,
+            category: formDataState.category || undefined,
+            isActive: formDataState.isActive,
           },
           {
             headers: {
@@ -120,7 +259,8 @@ export default function AnnouncementsPage() {
         category: '',
         isActive: true,
       });
-      fetchAnnouncements();
+      // Immediately refresh after create/update to show changes to all users
+      await fetchAnnouncements(true, true);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาด');
       console.error('Error saving announcement:', error);
@@ -151,7 +291,8 @@ export default function AnnouncementsPage() {
         },
       });
       toast.success('ลบคำประกาศสำเร็จ');
-      fetchAnnouncements();
+      // Immediately refresh after delete to show changes to all users
+      await fetchAnnouncements(true, true);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาด');
       console.error('Error deleting announcement:', error);
@@ -193,8 +334,8 @@ export default function AnnouncementsPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/30">
-        <div className="space-y-8 pb-8">
+      <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/30 overflow-hidden lg:left-64" style={{ top: 0, bottom: 0, left: 0, right: 0, height: '100vh', width: '100vw', maxWidth: '100vw', overflow: 'hidden', position: 'fixed' }}>
+        <div className="flex-shrink-0 space-y-4 overflow-hidden p-4">
           {/* Header Section */}
           <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 px-8 py-6 relative overflow-hidden">
@@ -206,10 +347,23 @@ export default function AnnouncementsPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h1 className="text-3xl font-bold text-white mb-1 truncate animate-in fade-in slide-in-from-left duration-700">สำหรับคำประกาศหมอ</h1>
-                    <p className="text-blue-100 text-sm truncate animate-in fade-in slide-in-from-left duration-700 delay-100">จัดการและคัดลอกคำประกาศสำหรับหมอ</p>
+                    <p className="text-blue-100 text-sm truncate animate-in fade-in slide-in-from-left duration-700 delay-100">
+                      จัดการและคัดลอกคำประกาศสำหรับหมอ
+                    </p>
                   </div>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      fetchAnnouncements(true, true);
+                    }}
+                    disabled={refreshing || loading}
+                    className="inline-flex items-center px-4 py-3 bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl font-semibold whitespace-nowrap border-2 border-white/30 hover:border-white/50 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="รีเฟรชคำประกาศ"
+                  >
+                    <RefreshCw className={`w-5 h-5 mr-2 flex-shrink-0 transition-transform duration-300 ${refreshing ? 'animate-spin' : ''}`} />
+                    <span className="whitespace-nowrap hidden sm:inline">{refreshing ? 'กำลังอัปเดต...' : 'รีเฟรช'}</span>
+                  </button>
                   <button
                     onClick={() => {
                       setShowForm(!showForm);
@@ -235,7 +389,7 @@ export default function AnnouncementsPage() {
 
           {/* Form */}
           {showForm && (
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all duration-500 animate-in fade-in slide-in-from-top-4 scale-in-95">
+            <div className="flex-shrink-0 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all duration-500 animate-in fade-in slide-in-from-top-4 scale-in-95">
               <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-5 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
                 <h2 className="text-2xl font-bold text-white relative z-10 animate-in fade-in slide-in-from-left duration-500">
@@ -249,8 +403,8 @@ export default function AnnouncementsPage() {
                   </label>
                   <input
                     type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    value={formDataState.title}
+                    onChange={(e) => setFormData({ ...formDataState, title: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 outline-none bg-white hover:border-blue-400 focus:shadow-lg focus:shadow-blue-200"
                     placeholder="กรอกหัวข้อคำประกาศ"
                     required
@@ -262,8 +416,8 @@ export default function AnnouncementsPage() {
                     เนื้อหา <span className="text-red-500">*</span>
                   </label>
                   <textarea
-                    value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    value={formDataState.content}
+                    onChange={(e) => setFormData({ ...formDataState, content: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 outline-none min-h-[180px] resize-y hover:border-gray-300 focus:shadow-lg focus:shadow-blue-200"
                     placeholder="กรอกเนื้อหาคำประกาศ"
                     required
@@ -275,8 +429,8 @@ export default function AnnouncementsPage() {
                     หมวดหมู่
                   </label>
                   <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    value={formDataState.category}
+                    onChange={(e) => setFormData({ ...formDataState, category: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 outline-none bg-white hover:border-gray-300 focus:shadow-lg focus:shadow-blue-200 cursor-pointer"
                   >
                     <option value="">เลือกหมวดหมู่</option>
@@ -289,8 +443,8 @@ export default function AnnouncementsPage() {
                   <input
                     type="checkbox"
                     id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    checked={formDataState.isActive}
+                    onChange={(e) => setFormData({ ...formDataState, isActive: e.target.checked })}
                     className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer transform hover:scale-110 transition-transform duration-200"
                   />
                   <label htmlFor="isActive" className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors duration-200">
@@ -327,9 +481,11 @@ export default function AnnouncementsPage() {
               </form>
             </div>
           )}
+        </div>
 
-          {/* Announcements List */}
-          <div className="space-y-6">
+        {/* Announcements List */}
+        <div className="flex-1 overflow-hidden px-4 pb-4 min-h-0">
+          <div className="space-y-6 h-full overflow-hidden">
             {announcements.length === 0 ? (
               <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-16 text-center">
                 <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full mb-6">
@@ -455,6 +611,6 @@ export default function AnnouncementsPage() {
           </div>
         </div>
       </div>
-    </Layout>
+      </Layout>
   );
 }
