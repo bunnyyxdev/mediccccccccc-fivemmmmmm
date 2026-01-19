@@ -12,6 +12,97 @@ import { DOCTOR_RANKS, getDoctorRankLabel } from '@/lib/doctor-ranks';
 import PasswordInput from '@/components/PasswordInput';
 import { isPasswordTooSimilar } from '@/lib/auth';
 
+// Common weak passwords to check against (expanded list)
+const COMMON_PASSWORDS = [
+  // Numeric sequences
+  '12345678', '123456789', '1234567890', '12345678901', '123456789012',
+  '1234', '12345', '123456', '1234567', '87654321', '987654321',
+  // Common words + numbers
+  'password', 'password1', 'password12', 'password123', 'password1234',
+  'admin', 'admin1', 'admin12', 'admin123', 'admin1234',
+  'welcome', 'welcome1', 'welcome12', 'welcome123', 'welcome1234',
+  'qwerty', 'qwerty1', 'qwerty12', 'qwerty123', 'qwerty1234',
+  'letmein', 'letmein1', 'letmein12', 'letmein123',
+  // Common words
+  'monkey', 'dragon', 'master', 'sunshine', 'princess', 'football',
+  'iloveyou', 'trustno1', 'baseball', 'shadow', 'superman',
+  'michael', 'jordan', 'tigger', 'hunter', 'buster', 'thomas',
+  'hockey', 'ranger', 'daniel', 'hannah', 'maggie', 'jessie',
+  // Thai common passwords
+  '123456', 'password', 'admin', 'welcome',
+  // Patterns
+  'qwertyuiop', 'asdfghjkl', 'zxcvbnm', 'qwerty', 'abc123',
+  '11111111', '00000000', '88888888', '99999999',
+  // Simple patterns
+  'aaaaaa', 'aaaaaaa', 'aaaaaaaa', 'bbbbbb', 'cccccc',
+];
+
+// Check if password is common/weak
+const isCommonPassword = (password: string): boolean => {
+  if (!password || password.length < 4) return false;
+  
+  const lowerPassword = password.toLowerCase();
+  const trimmedPassword = lowerPassword.trim();
+  
+  // Exact match
+  if (COMMON_PASSWORDS.includes(trimmedPassword)) {
+    return true;
+  }
+  
+  // Contains common password
+  if (COMMON_PASSWORDS.some(common => {
+    if (common.length < 4) return false;
+    return trimmedPassword.includes(common) || common.includes(trimmedPassword);
+  })) {
+    return true;
+  }
+  
+  // Check for simple patterns (all same character, sequential numbers/letters)
+  if (/^(.)\1+$/.test(trimmedPassword)) { // All same character (aaaa, 1111)
+    return true;
+  }
+  
+  // Check for sequential numbers (12345678, 87654321)
+  if (/^[0-9]+$/.test(trimmedPassword)) {
+    const isSequential = trimmedPassword.split('').every((char, index, arr) => {
+      if (index === 0) return true;
+      const prev = parseInt(arr[index - 1]);
+      const curr = parseInt(char);
+      return Math.abs(curr - prev) === 1 || (prev === 9 && curr === 0) || (prev === 0 && curr === 9);
+    });
+    if (isSequential && trimmedPassword.length >= 6) {
+      return true;
+    }
+  }
+  
+  // Check for sequential letters (abcdef, zyxwvu)
+  if (/^[a-z]+$/.test(trimmedPassword) && trimmedPassword.length >= 6) {
+    const isSequential = trimmedPassword.split('').every((char, index, arr) => {
+      if (index === 0) return true;
+      const prev = arr[index - 1].charCodeAt(0);
+      const curr = char.charCodeAt(0);
+      return Math.abs(curr - prev) === 1;
+    });
+    if (isSequential) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
+// Get password requirements checklist
+const getPasswordRequirements = (password: string) => {
+  return {
+    minLength: password.length >= 8,
+    hasLowercase: /[a-z]/.test(password),
+    hasUppercase: /[A-Z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[^a-zA-Z0-9]/.test(password),
+    notCommon: !isCommonPassword(password),
+  };
+};
+
 // Calculate password strength
 const calculatePasswordStrength = (password: string): { score: number; label: string; color: string } => {
   if (!password) {
@@ -30,6 +121,11 @@ const calculatePasswordStrength = (password: string): { score: number; label: st
   if (/[A-Z]/.test(password)) score += 1; // uppercase
   if (/[0-9]/.test(password)) score += 1; // numbers
   if (/[^a-zA-Z0-9]/.test(password)) score += 1; // special characters
+  
+  // Penalty for common passwords
+  if (isCommonPassword(password)) {
+    score = Math.max(0, score - 2);
+  }
   
   // Determine strength level
   if (score <= 2) {
@@ -72,6 +168,14 @@ export default function SettingsPage() {
     label: string;
     color: string;
   }>({ score: 0, label: '', color: '' });
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    minLength: false,
+    hasLowercase: false,
+    hasUppercase: false,
+    hasNumber: false,
+    hasSpecial: false,
+    notCommon: true,
+  });
 
   useEffect(() => {
     fetchUserProfile();
@@ -399,36 +503,139 @@ export default function SettingsPage() {
                         const newPassword = e.target.value;
                         setPasswordData({ ...passwordData, newPassword });
                         setPasswordStrength(calculatePasswordStrength(newPassword));
+                        setPasswordRequirements(getPasswordRequirements(newPassword));
                       }}
                       required
                       placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)"
                       minLength={8}
                     />
                     {passwordData.newPassword && (
-                      <div className="mt-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-gray-600">ความแข็งแกร่งของรหัสผ่าน:</span>
-                          <span className={`text-xs font-medium ${
-                            passwordStrength.score <= 2 ? 'text-red-600' :
-                            passwordStrength.score <= 4 ? 'text-yellow-600' :
-                            'text-green-600'
-                          }`}>
-                            {passwordStrength.label}
-                          </span>
+                      <div className="mt-2 space-y-3">
+                        {/* Password Strength Bar */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-600">ความแข็งแกร่งของรหัสผ่าน:</span>
+                            <span className={`text-xs font-medium ${
+                              passwordStrength.score <= 2 ? 'text-red-600' :
+                              passwordStrength.score <= 4 ? 'text-yellow-600' :
+                              'text-green-600'
+                            }`}>
+                              {passwordStrength.label}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                              style={{
+                                width: `${Math.min((passwordStrength.score / 7) * 100, 100)}%`
+                              }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
-                            style={{
-                              width: `${Math.min((passwordStrength.score / 7) * 100, 100)}%`
-                            }}
-                          />
+
+                        {/* Password Requirements Checklist */}
+                        <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                          <p className="text-xs font-medium text-gray-700 mb-2">ข้อกำหนดรหัสผ่าน:</p>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-4 h-4 rounded flex items-center justify-center ${
+                                passwordRequirements.minLength ? 'bg-green-500' : 'bg-gray-300'
+                              }`}>
+                                {passwordRequirements.minLength && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className={`text-xs ${passwordRequirements.minLength ? 'text-green-700' : 'text-gray-600'}`}>
+                                อย่างน้อย 8 ตัวอักษร
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-4 h-4 rounded flex items-center justify-center ${
+                                passwordRequirements.hasLowercase ? 'bg-green-500' : 'bg-gray-300'
+                              }`}>
+                                {passwordRequirements.hasLowercase && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className={`text-xs ${passwordRequirements.hasLowercase ? 'text-green-700' : 'text-gray-600'}`}>
+                                ตัวพิมพ์เล็ก (a-z)
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-4 h-4 rounded flex items-center justify-center ${
+                                passwordRequirements.hasUppercase ? 'bg-green-500' : 'bg-gray-300'
+                              }`}>
+                                {passwordRequirements.hasUppercase && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className={`text-xs ${passwordRequirements.hasUppercase ? 'text-green-700' : 'text-gray-600'}`}>
+                                ตัวพิมพ์ใหญ่ (A-Z)
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-4 h-4 rounded flex items-center justify-center ${
+                                passwordRequirements.hasNumber ? 'bg-green-500' : 'bg-gray-300'
+                              }`}>
+                                {passwordRequirements.hasNumber && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className={`text-xs ${passwordRequirements.hasNumber ? 'text-green-700' : 'text-gray-600'}`}>
+                                ตัวเลข (0-9)
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-4 h-4 rounded flex items-center justify-center ${
+                                passwordRequirements.hasSpecial ? 'bg-green-500' : 'bg-gray-300'
+                              }`}>
+                                {passwordRequirements.hasSpecial && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className={`text-xs ${passwordRequirements.hasSpecial ? 'text-green-700' : 'text-gray-600'}`}>
+                                อักขระพิเศษ (!@#$)
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-4 h-4 rounded flex items-center justify-center ${
+                                passwordRequirements.notCommon ? 'bg-green-500' : 'bg-red-500'
+                              }`}>
+                                {passwordRequirements.notCommon ? (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className={`text-xs ${passwordRequirements.notCommon ? 'text-green-700' : 'text-red-700'}`}>
+                                ไม่ใช่รหัสผ่านทั่วไป
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="mt-1 text-xs text-gray-500">
-                          {passwordStrength.score <= 2 && 'แนะนำ: เพิ่มตัวอักษรพิมพ์ใหญ่, ตัวเลข หรืออักขระพิเศษ'}
-                          {passwordStrength.score > 2 && passwordStrength.score <= 4 && 'ดีขึ้นแล้ว: เพิ่มความยาวหรืออักขระพิเศษเพื่อความปลอดภัยมากขึ้น'}
-                          {passwordStrength.score > 4 && 'รหัสผ่านแข็งแกร่ง!'}
-                        </div>
+
+                        {/* Warning for common passwords */}
+                        {!passwordRequirements.notCommon && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+                            <p className="text-xs text-red-700">
+                              ⚠️ รหัสผ่านนี้เป็นรหัสผ่านที่ใช้บ่อย ควรเปลี่ยนเป็นรหัสผ่านที่ซับซ้อนกว่า
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -442,6 +649,25 @@ export default function SettingsPage() {
                       placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
                       minLength={8}
                     />
+                    {passwordData.confirmPassword && (
+                      <div className="mt-2">
+                        {passwordData.newPassword === passwordData.confirmPassword ? (
+                          <div className="flex items-center space-x-2 text-green-600">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span className="text-xs font-medium">รหัสผ่านตรงกัน</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2 text-red-600">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            <span className="text-xs font-medium">รหัสผ่านไม่ตรงกัน</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center space-x-4 pt-4">
