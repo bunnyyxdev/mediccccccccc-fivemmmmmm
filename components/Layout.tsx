@@ -20,15 +20,13 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
   const [loading, setLoading] = useState(true);
   const initializedRef = useRef(false);
   const lastLoggedPathnameRef = useRef<string | null>(null);
+  const redirectingRef = useRef(false);
 
   useEffect(() => {
     // Only run auth check on initial mount or when requireAuth/requireRole changes
     // Skip if already initialized to prevent flickering on route changes
     if (initializedRef.current) {
-      // Only validate role if it's required and user doesn't match
-      if (requireRole && user && user.role !== requireRole) {
-        router.push('/dashboard');
-      }
+      // Role validation is handled in a separate effect
       return;
     }
 
@@ -42,8 +40,12 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
     const userStr = localStorage.getItem('user');
 
     if (!token || !userStr) {
-      if (!initializedRef.current) {
+      if (!initializedRef.current && !redirectingRef.current && pathname !== '/login') {
+        redirectingRef.current = true;
         router.push('/login');
+        setTimeout(() => {
+          redirectingRef.current = false;
+        }, 1000);
       }
       return;
     }
@@ -63,17 +65,25 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
           userDataId,
           match: tokenUserId === userDataId
         });
-        if (!initializedRef.current) {
+        if (!initializedRef.current && !redirectingRef.current && pathname !== '/login') {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          redirectingRef.current = true;
           router.push('/login');
+          setTimeout(() => {
+            redirectingRef.current = false;
+          }, 1000);
         }
         return;
       }
 
       if (requireRole && userData.role !== requireRole) {
-        if (!initializedRef.current) {
+        if (!initializedRef.current && !redirectingRef.current && pathname !== '/dashboard') {
+          redirectingRef.current = true;
           router.push('/dashboard');
+          setTimeout(() => {
+            redirectingRef.current = false;
+          }, 1000);
         }
         return;
       }
@@ -89,13 +99,33 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
       initializedRef.current = true;
     } catch (error) {
       console.error('Error parsing user data:', error);
-      if (!initializedRef.current) {
+      if (!initializedRef.current && !redirectingRef.current && pathname !== '/login') {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        redirectingRef.current = true;
         router.push('/login');
+        setTimeout(() => {
+          redirectingRef.current = false;
+        }, 1000);
       }
     }
-  }, [router, requireAuth, requireRole]); // Removed pathname from dependencies
+  }, [router, requireAuth, requireRole]); // Only run on mount or when auth requirements change
+  
+  // Separate effect for role validation after initialization
+  useEffect(() => {
+    // Only check role after initialization and if user exists
+    if (!initializedRef.current || !user || !requireRole) return;
+    
+    // Only redirect if role doesn't match and we're not already on the target page
+    if (user.role !== requireRole && !redirectingRef.current && pathname !== '/dashboard') {
+      redirectingRef.current = true;
+      router.push('/dashboard');
+      setTimeout(() => {
+        redirectingRef.current = false;
+      }, 1000);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role, requireRole, pathname]); // Check when user role or requireRole changes
 
   const handleLogout = () => {
     localStorage.removeItem('token');
