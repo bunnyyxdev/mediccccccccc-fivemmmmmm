@@ -49,7 +49,7 @@ export default function BonusPage() {
     <Layout requireAuth={true}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header Section */}
-        <div className="mb-8 animate-fade-in">
+        <div className="mb-8">
           <div className="flex items-center space-x-3 mb-2">
             <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-lg">
               <Users className="w-6 h-6 text-white" />
@@ -90,7 +90,7 @@ export default function BonusPage() {
         </div>
 
         {/* History Section */}
-        <div className="animate-fade-in-delay">
+        <div>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
               <div className="flex items-center space-x-3">
@@ -119,7 +119,7 @@ export default function BonusPage() {
                 {bonuses.map((bonus, index) => (
                   <div
                     key={bonus._id}
-                    className="p-6 hover:bg-gray-50 transition-colors duration-200 animate-fade-in"
+                    className="p-6 hover:bg-gray-50 transition-colors duration-200"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center gap-4">

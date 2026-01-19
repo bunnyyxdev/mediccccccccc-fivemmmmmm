@@ -203,7 +203,7 @@ export default function DisciplinePage() {
         {/* Form Section with smooth animation */}
         {showForm && (
           <div 
-            className="bg-white rounded-xl shadow-lg border-2 border-orange-100 mb-6 overflow-visible transform transition-all duration-500 ease-out animate-slide-down-fade"
+            className="bg-white rounded-xl shadow-lg border-2 border-orange-100 mb-6 overflow-visible transform transition-all duration-500 ease-out"
             style={{ zIndex: 100 }}
           >
             <div className="bg-gradient-to-r from-orange-500 to-yellow-500 px-6 py-4 relative overflow-hidden">
@@ -281,7 +281,7 @@ export default function DisciplinePage() {
               </div>
 
               {/* Form Actions */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-4 border-t border-gray-200 animate-fade-in" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-4 border-t border-gray-200">
                 <Button
                   type="button"
                   variant="secondary"
@@ -399,7 +399,7 @@ export default function DisciplinePage() {
               </div>
             </div>
           ) : records.length === 0 ? (
-            <div className="p-12 animate-fade-in">
+            <div className="p-12">
               <Alert type="info" message="ยังไม่มีการบันทึกโทษวินัย" />
             </div>
           ) : (
