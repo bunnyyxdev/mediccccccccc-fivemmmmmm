@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import axios from 'axios';
 import Sidebar from './Sidebar';
 import PWAInstallPrompt from './PWAInstallPrompt';
 import { verifyToken } from '@/lib/auth';
@@ -112,6 +113,32 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
 
   // Ensure role is set correctly - default to 'doctor' if not set
   const userRole = (user?.role === 'admin' || user?.role === 'doctor') ? user.role : 'doctor';
+
+  // Log IP address when user accesses the page
+  useEffect(() => {
+    if (initializedRef.current && user) {
+      const logIP = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            await axios.post(
+              '/api/ip-log',
+              {},
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+          }
+        } catch (error) {
+          // Silently fail - don't interrupt user experience
+          console.log('IP logging failed:', error);
+        }
+      };
+
+      // Log IP on mount and when pathname changes
+      logIP();
+    }
+  }, [pathname, user]);
 
   return (
     <div className="flex min-h-screen bg-gray-50" style={{ minHeight: '100dvh' }}>
