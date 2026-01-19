@@ -161,7 +161,7 @@ export default function DoctorIDCard({
       <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>ID: {username}</span>
-          <span>© Biz City Medic System</span>
+          <span>© Preview City Medic System</span>
         </div>
       </div>
     </div>

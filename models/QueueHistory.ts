@@ -76,7 +76,6 @@ const QueueHistorySchema = new Schema<IQueueHistory>(
       type: String,
       enum: ['completed', 'stopped', 'cancelled'],
       default: 'completed',
-      index: true,
     },
     stoppedBy: {
       type: Schema.Types.ObjectId,

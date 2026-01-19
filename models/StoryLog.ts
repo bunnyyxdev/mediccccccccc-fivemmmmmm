@@ -61,7 +61,6 @@ const StoryLogSchema: Schema = new Schema(
       type: String,
       required: [true, 'Status is required'],
       trim: true,
-      index: true,
     },
     negotiation: {
       date: {

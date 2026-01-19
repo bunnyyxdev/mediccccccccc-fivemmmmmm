@@ -67,7 +67,6 @@ const BonusSchema: Schema = new Schema(
       type: String,
       enum: ['pending', 'approved', 'paid', 'rejected'],
       default: 'pending',
-      index: true,
     },
     approvedBy: {
       type: Schema.Types.ObjectId,

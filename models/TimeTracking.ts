@@ -62,7 +62,6 @@ const TimeTrackingSchema: Schema = new Schema(
       type: String,
       enum: ['active', 'completed'],
       default: 'active',
-      index: true,
     },
   },
   {

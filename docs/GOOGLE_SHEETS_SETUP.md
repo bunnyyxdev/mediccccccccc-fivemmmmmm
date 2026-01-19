@@ -1,6 +1,6 @@
 # การตั้งค่า Google Sheets Integration
 
-ระบบหมอ Biz City รองรับการบันทึกข้อมูลไปยัง Google Sheets เป็น backup และ fallback จาก MongoDB
+ระบบหมอ Preview City รองรับการบันทึกข้อมูลไปยัง Google Sheets เป็น backup และ fallback จาก MongoDB
 
 ## ขั้นตอนการตั้งค่า
 
@@ -15,9 +15,9 @@
 1. ไปที่ **IAM & Admin** > **Service Accounts**
 2. คลิก **Create Service Account**
 3. กรอกข้อมูล:
-   - **Service account name**: `medic-bizcity-sheets`
+`   - **Service account name**: `medic-preview-city-sheets`
    - **Service account ID**: (จะสร้างอัตโนมัติ)
-   - **Description**: `Service account for Medic Biz City Google Sheets integration`
+   - **Description**: `Service account for Medic Preview City Google Sheets integration`
 4. คลิก **Create and Continue**
 5. ข้ามขั้นตอน Grant access (ไม่จำเป็น)
 6. คลิก **Done**
@@ -49,7 +49,7 @@
 1. เปิด Spreadsheet ที่สร้างไว้
 2. คลิก **Share** (ปุ่ม "แชร์" มุมบนขวา)
 3. ใส่ **Email ของ Service Account** (จาก `client_email` ใน `credentials.json`)
-   - ตัวอย่าง: `medic-bizcity-sheets@your-project.iam.gserviceaccount.com`
+   - ตัวอย่าง: `medic-preview-city-sheets@your-project.iam.gserviceaccount.com`
 4. เลือกสิทธิ์เป็น **Editor**
 5. คลิก **Send**
 

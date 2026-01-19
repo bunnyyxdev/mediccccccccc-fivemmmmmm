@@ -70,7 +70,6 @@ const DisciplineSchema: Schema = new Schema(
       type: String,
       enum: ['pending', 'issued', 'appealed', 'resolved'],
       default: 'pending',
-      index: true,
     },
     appealReason: {
       type: String,

@@ -65,7 +65,6 @@ const LeaveSchema: Schema = new Schema(
       type: String,
       enum: ['pending', 'approved', 'rejected', 'cancelled'],
       default: 'pending',
-      index: true,
     },
     reviewedBy: {
       type: Schema.Types.ObjectId,

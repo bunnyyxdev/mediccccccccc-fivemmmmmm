@@ -298,7 +298,7 @@
 
 ```env
 # MongoDB
-MONGODB_URI=mongodb://localhost:27017/medic_bizcity
+MONGODB_URI=mongodb://localhost:27017/medic_preview_city
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key

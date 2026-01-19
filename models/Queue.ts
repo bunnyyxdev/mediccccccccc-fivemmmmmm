@@ -29,7 +29,6 @@ const QueueSchema: Schema = new Schema(
       type: String,
       enum: ['waiting', 'in-progress', 'completed', 'cancelled'],
       default: 'waiting',
-      index: true,
     },
     startedAt: {
       type: Date,

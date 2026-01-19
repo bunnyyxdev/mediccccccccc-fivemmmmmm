@@ -132,7 +132,7 @@ export default function LoginPage() {
                 <Shield className="w-10 h-10 text-white" />
               </div>
               <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
-                ระบบหมอ Biz City
+                ระบบหมอ Preview City
               </h1>
               <p className="text-blue-100 text-sm font-medium">Medic Management System</p>
             </div>
@@ -219,7 +219,7 @@ export default function LoginPage() {
             {/* Footer */}
             <div className="mt-6 text-center">
               <p className="text-xs text-gray-500">
-                ยินดีต้อนรับเข้าสู่ระบบจัดการแพทย์ Biz City
+                ยินดีต้อนรับเข้าสู่ระบบจัดการแพทย์ Preview City
               </p>
             </div>
           </div>

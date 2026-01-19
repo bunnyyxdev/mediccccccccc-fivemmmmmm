@@ -1,6 +1,6 @@
-# การ Deploy ระบบหมอ Biz City
+# การ Deploy ระบบหมอ Preview City
 
-คู่มือการ deploy ระบบหมอ Biz City ไปยัง production
+คู่มือการ deploy ระบบหมอ Preview City ไปยัง production
 
 ## Prerequisites
 
@@ -122,7 +122,7 @@ CMD ["npm", "start"]
 ### 2. Build Docker Image
 
 ```bash
-docker build -t medic-bizcity .
+docker build -t medic-preview-city .
 ```
 
 ### 3. Run Container
@@ -132,7 +132,7 @@ docker run -p 3000:3000 \
   -e MONGODB_URI=your-mongodb-uri \
   -e JWT_SECRET=your-jwt-secret \
   -v $(pwd)/credentials.json:/app/credentials.json \
-  medic-bizcity
+  medic-preview-city
 ```
 
 ## Security Checklist
