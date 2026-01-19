@@ -1,0 +1,42 @@
+{
+  "name": "ระบบหมอ Preview City",
+  "short_name": "Preview City Medic",
+  "description": "ระบบจัดการสำหรับแพทย์ Preview City",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["medical", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "เปิดหน้า Dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "รันคิว",
+      "short_name": "Queue",
+      "description": "จัดการคิว",
+      "url": "/dashboard/queue",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

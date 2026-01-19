@@ -1,0 +1,122 @@
+// Service Worker for Offline Support
+const CACHE_NAME = 'preview-city-medic-v1';
+const RUNTIME_CACHE = 'preview-city-medic-runtime-v1';
+
+// Assets to cache on install
+const STATIC_ASSETS = [
+  '/',
+  '/login',
+  '/dashboard',
+  '/manifest.json',
+];
+
+// Install event - cache static assets
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS);
+    })
+  );
+  self.skipWaiting();
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((cacheName) => {
+            return cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE;
+          })
+          .map((cacheName) => {
+            return caches.delete(cacheName);
+          })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Fetch event - serve from cache, fallback to network
+self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Skip API requests (always use network)
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return fetch(event.request)
+        .then((response) => {
+          // Don't cache if not a valid response
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+
+          // Clone the response
+          const responseToCache = response.clone();
+
+          caches.open(RUNTIME_CACHE).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+
+          return response;
+        })
+        .catch(() => {
+          // Return offline page if available
+          if (event.request.destination === 'document') {
+            return caches.match('/');
+          }
+        });
+    })
+  );
+});
+
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-leaves') {
+    event.waitUntil(syncLeaves());
+  }
+});
+
+async function syncLeaves() {
+  // Implement offline leave sync logic here
+  console.log('Syncing leaves...');
+}
+
+// Push notification handler
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  const title = data.title || 'Preview City Medic';
+  const options = {
+    body: data.body || 'คุณมีการแจ้งเตือนใหม่',
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    tag: data.tag || 'notification',
+    data: data.url || '/dashboard',
+    requireInteraction: data.requireInteraction || false,
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// Notification click handler
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    clients.openWindow(event.notification.data || '/dashboard')
+  );
+});

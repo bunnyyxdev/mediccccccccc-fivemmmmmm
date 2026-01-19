@@ -21,6 +21,34 @@ const nextConfig = {
     ADMIN_USERNAME: process.env.ADMIN_USERNAME || 'administrator',
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'exampleadminpassword',
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || '',
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
+  },
+  // PWA Configuration
+  async headers() {
+    return [
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
+          },
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
   },
 }
 

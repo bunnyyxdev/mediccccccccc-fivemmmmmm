@@ -265,7 +265,7 @@ export default function DashboardPage() {
     <Layout requireAuth={true}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header Section */}
-        <div className="mb-8 animate-fade-in">
+        <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
               <div className="flex items-center space-x-3 mb-2">
@@ -324,7 +324,7 @@ export default function DashboardPage() {
                 <div
                   key={index}
                   onClick={() => router.push(stat.href)}
-                  className={`bg-gradient-to-br ${stat.bgGradient} border-2 ${stat.borderColor} rounded-2xl p-6 cursor-pointer card-hover animate-fade-in group transition-smooth`}
+                  className={`bg-gradient-to-br ${stat.bgGradient} border-2 ${stat.borderColor} rounded-2xl p-6 cursor-pointer card-hover group transition-smooth`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -360,7 +360,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions Section */}
-        <div className="animate-fade-in-delay">
+        <div>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="flex items-center space-x-3 mb-6">
               <div className="p-2 bg-indigo-100 rounded-lg">

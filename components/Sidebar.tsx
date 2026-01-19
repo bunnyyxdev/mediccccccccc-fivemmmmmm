@@ -212,7 +212,10 @@ export default function Sidebar({ role = 'doctor', onLogout }: SidebarProps) {
       {/* Sidebar */}
       <div className={`fixed left-0 top-0 h-screen w-64 bg-gray-900 text-white shadow-lg z-40 transition-spring ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`}>
+      }`}
+      style={{
+        height: '100dvh', // Dynamic viewport height for mobile
+      }}>
       <div className="flex flex-col h-full">
         {/* Logo/Header */}
         <div className="p-6 border-b border-gray-800 flex items-center justify-between">

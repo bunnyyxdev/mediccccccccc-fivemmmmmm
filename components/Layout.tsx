@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
+import PWAInstallPrompt from './PWAInstallPrompt';
 import { verifyToken } from '@/lib/auth';
 
 interface LayoutProps {
@@ -113,13 +114,14 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
   const userRole = (user?.role === 'admin' || user?.role === 'doctor') ? user.role : 'doctor';
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50" style={{ minHeight: '100dvh' }}>
       <Sidebar role={userRole} onLogout={handleLogout} />
-      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 mt-16 lg:mt-0 animate-fade-in transition-smooth">
+      <main className="flex-1 lg:ml-64 p-3 sm:p-4 md:p-6 lg:p-8 pt-16 sm:pt-20 lg:pt-8">
         <div className="max-w-full">
           {children}
         </div>
       </main>
+      <PWAInstallPrompt />
     </div>
   );
 }
