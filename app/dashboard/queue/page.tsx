@@ -109,9 +109,15 @@ export default function QueuePage() {
           // Sync all state from server (live update)
           setIsRunning(true);
           setIsRunner(isLocalRunner);
-          setCurrentQueueIndex(status.currentQueueIndex || 0);
           
           const newDoctors = status.doctors || [];
+          // Ensure currentQueueIndex is within bounds
+          const safeIndex = Math.max(0, Math.min(
+            status.currentQueueIndex || 0,
+            Math.max(0, newDoctors.length - 1)
+          ));
+          setCurrentQueueIndex(safeIndex);
+          
           setDoctors((prev) => {
             if (JSON.stringify(prev) !== JSON.stringify(newDoctors)) {
               return newDoctors;
@@ -131,6 +137,11 @@ export default function QueuePage() {
               }
               return prev;
             });
+          }
+          
+          // Update elapsedTime from server (only if we're not the runner, to avoid conflict)
+          if (status.elapsedTime !== undefined && !isLocalRunner) {
+            setElapsedTime(status.elapsedTime);
           }
         } else {
           // Queue stopped on server - reset local state only if we're not the runner
@@ -165,6 +176,7 @@ export default function QueuePage() {
         const token = localStorage.getItem('token');
         if (!token) return;
 
+        // Don't send elapsedTime - backend will calculate it from startTime
         await axios.post(
           '/api/queue/status',
           {
@@ -172,7 +184,6 @@ export default function QueuePage() {
             currentQueueIndex,
             doctors,
             startTime: startTime?.toISOString(),
-            elapsedTime,
             runnerName,
           },
           {
@@ -190,11 +201,12 @@ export default function QueuePage() {
     }, 300); // Debounce with transition delay
 
     return () => clearTimeout(timeoutId);
-  }, [isRunning, isRunner, currentQueueIndex, doctors, startTime, runnerName]);
+  }, [isRunning, isRunner, currentQueueIndex, doctors, startTime, runnerName]); // Removed elapsedTime from dependencies
 
-  // Calculate elapsed time with transition effect
+  // Calculate elapsed time locally (only if we're the runner, otherwise use server value)
   useEffect(() => {
-    if (isRunning && startTime) {
+    if (isRunning && startTime && isRunner) {
+      // Only calculate locally if we're the runner
       const calculateElapsed = () => {
         const now = new Date();
         const elapsed = now.getTime() - startTime.getTime();
@@ -210,9 +222,16 @@ export default function QueuePage() {
         }
       };
     } else {
-      setElapsedTime(0);
+      // Clear interval if not running or not runner
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (!isRunning) {
+        setElapsedTime(0);
+      }
     }
-  }, [isRunning, startTime]);
+  }, [isRunning, startTime, isRunner]);
 
   const formatTime = (milliseconds: number): string => {
     const totalSeconds = Math.floor(milliseconds / 1000);
@@ -275,7 +294,6 @@ export default function QueuePage() {
             currentQueueIndex: 0,
             doctors,
             startTime: startTimeNow.toISOString(),
-            elapsedTime: 0,
             runnerName,
           },
           {
@@ -340,7 +358,6 @@ export default function QueuePage() {
             isRunning: false,
             currentQueueIndex: 0,
             doctors: [],
-            elapsedTime: 0,
             runnerName: '',
           },
           {
@@ -380,7 +397,10 @@ export default function QueuePage() {
     }
 
     if (!isRunning || doctors.length === 0) return;
-    const newIndex = currentQueueIndex < doctors.length - 1 ? currentQueueIndex + 1 : 0;
+    
+    // Ensure currentQueueIndex is within bounds
+    const safeIndex = Math.max(0, Math.min(currentQueueIndex, doctors.length - 1));
+    const newIndex = safeIndex < doctors.length - 1 ? safeIndex + 1 : 0;
     setCurrentQueueIndex(newIndex);
   };
 
@@ -393,7 +413,10 @@ export default function QueuePage() {
     }
 
     if (!isRunning || doctors.length === 0) return;
-    const newIndex = currentQueueIndex > 0 ? currentQueueIndex - 1 : doctors.length - 1;
+    
+    // Ensure currentQueueIndex is within bounds
+    const safeIndex = Math.max(0, Math.min(currentQueueIndex, doctors.length - 1));
+    const newIndex = safeIndex > 0 ? safeIndex - 1 : doctors.length - 1;
     setCurrentQueueIndex(newIndex);
   };
 
@@ -445,17 +468,27 @@ export default function QueuePage() {
       toast.error('กรุณาใส่ชื่อผู้รัน');
       return;
     }
+    
+    // Ensure currentQueueIndex is within bounds after updating doctors
+    const safeIndex = isRunning 
+      ? Math.max(0, Math.min(currentQueueIndex, queueDoctors.length - 1))
+      : 0;
+    
     setDoctors([...queueDoctors]);
     setRunnerName(selectedRunnerName.trim());
-    if (isRunning && currentQueueIndex >= queueDoctors.length) {
-      setCurrentQueueIndex(0);
-    }
+    setCurrentQueueIndex(safeIndex);
     setIsEditModalOpen(false);
     toast.success('บันทึกการแก้ไขคิวเรียบร้อย');
   };
 
   const availableDoctors = allDoctors.filter((doctor) => !queueDoctors.find((qd) => qd._id === doctor._id));
-  const currentDoctor = doctors[currentQueueIndex] || null;
+  // Ensure currentQueueIndex is always within bounds
+  const safeCurrentIndex = doctors.length > 0 
+    ? Math.max(0, Math.min(currentQueueIndex, doctors.length - 1))
+    : 0;
+  const currentDoctor = doctors.length > 0 && safeCurrentIndex < doctors.length 
+    ? doctors[safeCurrentIndex] 
+    : null;
 
   return (
     <Layout requireAuth={true}>
@@ -511,7 +544,7 @@ export default function QueuePage() {
                   </div>
                 )}
                 <div className="text-blue-100 text-sm">
-                  คิวที่ {currentQueueIndex + 1} / {doctors.length}
+                  คิวที่ {safeCurrentIndex + 1} / {doctors.length}
                 </div>
               </div>
             </div>
@@ -548,37 +581,40 @@ export default function QueuePage() {
                 <div className="text-gray-400 text-center py-12 text-sm">ยังไม่มีรายชื่อหมอ กรุณากดปุ่ม "แก้ไขคิว" เพื่อเพิ่มหมอ</div>
               ) : (
                 <div className="space-y-2">
-                  {doctors.map((doctor, index) => (
-                    <div
-                      key={doctor._id}
-                      className={`flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
-                        index === currentQueueIndex
-                          ? 'bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-500 shadow-md transform scale-[1.02]'
-                          : 'bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-300'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <span className={`font-bold text-sm ${index === currentQueueIndex ? 'text-blue-600' : 'text-gray-400'}`}>
-                          #{index + 1}
-                        </span>
-                        <span className={`font-medium text-sm ${index === currentQueueIndex ? 'text-blue-900' : 'text-gray-900'}`}>
-                          {doctor.name}
-                        </span>
-                        {doctor.doctorRank && (
-                          <span
-                            className={`text-xs px-2 py-0.5 rounded ${
-                              index === currentQueueIndex ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-600'
-                            }`}
-                          >
-                            {doctor.doctorRank}
+                  {doctors.map((doctor, index) => {
+                    const isCurrent = index === safeCurrentIndex;
+                    return (
+                      <div
+                        key={doctor._id}
+                        className={`flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
+                          isCurrent
+                            ? 'bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-500 shadow-md transform scale-[1.02]'
+                            : 'bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <span className={`font-bold text-sm ${isCurrent ? 'text-blue-600' : 'text-gray-400'}`}>
+                            #{index + 1}
                           </span>
+                          <span className={`font-medium text-sm ${isCurrent ? 'text-blue-900' : 'text-gray-900'}`}>
+                            {doctor.name}
+                          </span>
+                          {doctor.doctorRank && (
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded ${
+                                isCurrent ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-600'
+                              }`}
+                            >
+                              {doctor.doctorRank}
+                            </span>
+                          )}
+                        </div>
+                        {isCurrent && (
+                          <span className="text-xs font-semibold text-blue-700 bg-blue-200 px-3 py-1 rounded-full animate-pulse">🔄 กำลังรัน</span>
                         )}
                       </div>
-                      {index === currentQueueIndex && (
-                        <span className="text-xs font-semibold text-blue-700 bg-blue-200 px-3 py-1 rounded-full animate-pulse">🔄 กำลังรัน</span>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

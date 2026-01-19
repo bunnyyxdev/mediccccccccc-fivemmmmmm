@@ -22,15 +22,24 @@ async function handlerGET(request: NextRequest, user: any) {
       });
     }
 
-    const currentDoctor = queueStatus.doctors[queueStatus.currentQueueIndex] || null;
+    // Ensure currentQueueIndex is within bounds
+    const safeIndex = Math.max(0, Math.min(queueStatus.currentQueueIndex || 0, (queueStatus.doctors?.length || 0) - 1));
+    const currentDoctor = queueStatus.doctors && queueStatus.doctors.length > 0 
+      ? queueStatus.doctors[safeIndex] || null 
+      : null;
+
+    // Calculate current elapsedTime from startTime (more accurate than stored value)
+    const now = new Date();
+    const startTimeValue = queueStatus.startTime ? new Date(queueStatus.startTime) : now;
+    const calculatedElapsedTime = now.getTime() - startTimeValue.getTime();
 
     return NextResponse.json({
       isRunning: queueStatus.isRunning,
-      currentQueueIndex: queueStatus.currentQueueIndex,
-      doctors: queueStatus.doctors,
+      currentQueueIndex: safeIndex, // Use safe index
+      doctors: queueStatus.doctors || [],
       currentDoctor,
       startTime: queueStatus.startTime,
-      elapsedTime: queueStatus.elapsedTime,
+      elapsedTime: calculatedElapsedTime, // Calculate fresh on each GET request
       runnerName: queueStatus.runnerName,
       runnerId: queueStatus.runnerId, // Include runnerId so frontend can check if current user is the runner
       lastUpdated: queueStatus.lastUpdated,
@@ -132,28 +141,31 @@ async function handlerPOST(request: NextRequest, user: any) {
     await (QueueStatus as any).deleteMany({ isRunning: true });
 
     // Now create a new queue status document (temporary database - created when queue starts)
+    const startTimeValue = body.startTime ? new Date(body.startTime) : new Date();
+    
+    // Validate doctors array
+    const doctorsArray = body.doctors && Array.isArray(body.doctors) ? body.doctors : [];
+    
+    // Ensure currentQueueIndex is within bounds
+    const safeCurrentIndex = Math.max(0, Math.min(
+      body.currentQueueIndex !== undefined ? body.currentQueueIndex : 0,
+      Math.max(0, doctorsArray.length - 1)
+    ));
+    
+    // Calculate elapsedTime from startTime (don't trust frontend value)
+    const now = new Date();
+    const calculatedElapsedTime = Math.max(0, now.getTime() - startTimeValue.getTime());
+    
     const updateData: any = {
       isRunning: true,
-      currentQueueIndex: body.currentQueueIndex !== undefined ? body.currentQueueIndex : 0,
-      elapsedTime: body.elapsedTime !== undefined ? body.elapsedTime : 0,
+      currentQueueIndex: safeCurrentIndex,
+      elapsedTime: calculatedElapsedTime, // Calculate on backend, don't trust frontend
       runnerId: user.userId,
       runnerName: body.runnerName || user.name || 'ไม่ระบุ',
+      startTime: startTimeValue,
       lastUpdated: new Date(),
+      doctors: doctorsArray,
     };
-
-    // Set doctors if provided
-    if (body.doctors !== undefined) {
-      updateData.doctors = body.doctors;
-    } else {
-      updateData.doctors = [];
-    }
-
-    // Set startTime if provided
-    if (body.startTime !== undefined) {
-      updateData.startTime = body.startTime ? new Date(body.startTime) : new Date();
-    } else {
-      updateData.startTime = new Date();
-    }
 
     // Create new queue status document
     const queueStatus = await (QueueStatus as any).create(updateData);
