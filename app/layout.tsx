@@ -13,7 +13,7 @@ const notoSansThai = Noto_Sans_Thai({
 export const metadata: Metadata = {
   title: 'ระบบหมอ Preview City',
   description: 'ระบบจัดการสำหรับแพทย์ Preview City',
-  manifest: '/manifest.json',
+  manifest: '/manifest.json?v=2',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -49,6 +49,7 @@ export default function RootLayout({
   return (
     <html lang="th" className={notoSansThai.variable}>
       <head>
+        <link rel="manifest" href="/manifest.json?v=2" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="shortcut icon" href="/favicon.ico" />

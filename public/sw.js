@@ -24,6 +24,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
+      // Delete all old caches
       return Promise.all(
         cacheNames
           .filter((cacheName) => {
@@ -33,6 +34,13 @@ self.addEventListener('activate', (event) => {
             return caches.delete(cacheName);
           })
       );
+    }).then(() => {
+      // Also delete any cached manifest.json from runtime cache
+      return caches.open(RUNTIME_CACHE).then((cache) => {
+        return cache.delete('/manifest.json');
+      }).catch(() => {
+        // Ignore if manifest.json is not in cache
+      });
     })
   );
   self.clients.claim();
