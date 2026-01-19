@@ -56,7 +56,6 @@ export default function DisciplinePage() {
   const [fetching, setFetching] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
-    status: '',
     startDate: '',
     endDate: '',
   });
@@ -96,7 +95,6 @@ export default function DisciplinePage() {
       const params = new URLSearchParams();
       
       if (filters.search) params.append('search', filters.search);
-      if (filters.status) params.append('status', filters.status);
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
 
@@ -324,7 +322,7 @@ export default function DisciplinePage() {
             </div>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">ค้นหา</label>
                 <div className="relative">
@@ -337,21 +335,6 @@ export default function DisciplinePage() {
                     placeholder="ค้นหาชื่อแพทย์, ความผิด"
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">สถานะ</label>
-                <Select
-                  value={filters.status}
-                  onChange={(value) => setFilters({ ...filters, status: value })}
-                  options={[
-                    { value: '', label: 'ทั้งหมด' },
-                    { value: 'pending', label: 'รอดำเนินการ' },
-                    { value: 'issued', label: 'ออกแล้ว' },
-                    { value: 'appealed', label: 'อุทธรณ์' },
-                    { value: 'resolved', label: 'แก้ไขแล้ว' },
-                  ]}
-                  placeholder="เลือกสถานะ"
-                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label>

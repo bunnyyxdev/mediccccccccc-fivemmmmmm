@@ -10,6 +10,38 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { DOCTOR_RANKS, getDoctorRankLabel } from '@/lib/doctor-ranks';
 import PasswordInput from '@/components/PasswordInput';
+import { isPasswordTooSimilar } from '@/lib/auth';
+
+// Calculate password strength
+const calculatePasswordStrength = (password: string): { score: number; label: string; color: string } => {
+  if (!password) {
+    return { score: 0, label: '', color: '' };
+  }
+
+  let score = 0;
+  
+  // Length check
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (password.length >= 16) score += 1;
+  
+  // Character variety checks
+  if (/[a-z]/.test(password)) score += 1; // lowercase
+  if (/[A-Z]/.test(password)) score += 1; // uppercase
+  if (/[0-9]/.test(password)) score += 1; // numbers
+  if (/[^a-zA-Z0-9]/.test(password)) score += 1; // special characters
+  
+  // Determine strength level
+  if (score <= 2) {
+    return { score, label: 'อ่อนแอ', color: 'bg-red-500' };
+  } else if (score <= 4) {
+    return { score, label: 'ปานกลาง', color: 'bg-yellow-500' };
+  } else if (score <= 6) {
+    return { score, label: 'แข็งแกร่ง', color: 'bg-green-500' };
+  } else {
+    return { score, label: 'แข็งแกร่งมาก', color: 'bg-green-600' };
+  }
+};
 
 interface UserData {
   _id: string;
@@ -35,6 +67,11 @@ export default function SettingsPage() {
     newPassword: '',
     confirmPassword: '',
   });
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: number;
+    label: string;
+    color: string;
+  }>({ score: 0, label: '', color: '' });
 
   useEffect(() => {
     fetchUserProfile();
@@ -176,6 +213,12 @@ export default function SettingsPage() {
 
     if (passwordData.newPassword.length < 8) {
       toast.error('รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร');
+      return;
+    }
+
+    // Check if new password is too similar to current password
+    if (isPasswordTooSimilar(passwordData.newPassword, passwordData.currentPassword)) {
+      toast.error('รหัสผ่านใหม่ต้องแตกต่างจากรหัสผ่านปัจจุบันอย่างน้อย 30%');
       return;
     }
 
@@ -352,11 +395,42 @@ export default function SettingsPage() {
                     <PasswordInput
                       label="รหัสผ่านใหม่"
                       value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      onChange={(e) => {
+                        const newPassword = e.target.value;
+                        setPasswordData({ ...passwordData, newPassword });
+                        setPasswordStrength(calculatePasswordStrength(newPassword));
+                      }}
                       required
                       placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)"
                       minLength={8}
                     />
+                    {passwordData.newPassword && (
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-gray-600">ความแข็งแกร่งของรหัสผ่าน:</span>
+                          <span className={`text-xs font-medium ${
+                            passwordStrength.score <= 2 ? 'text-red-600' :
+                            passwordStrength.score <= 4 ? 'text-yellow-600' :
+                            'text-green-600'
+                          }`}>
+                            {passwordStrength.label}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                            style={{
+                              width: `${Math.min((passwordStrength.score / 7) * 100, 100)}%`
+                            }}
+                          />
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {passwordStrength.score <= 2 && 'แนะนำ: เพิ่มตัวอักษรพิมพ์ใหญ่, ตัวเลข หรืออักขระพิเศษ'}
+                          {passwordStrength.score > 2 && passwordStrength.score <= 4 && 'ดีขึ้นแล้ว: เพิ่มความยาวหรืออักขระพิเศษเพื่อความปลอดภัยมากขึ้น'}
+                          {passwordStrength.score > 4 && 'รหัสผ่านแข็งแกร่ง!'}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>

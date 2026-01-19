@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
-import { verifyTokenServer, hashPassword, verifyPassword } from '@/lib/auth';
+import { verifyTokenServer, hashPassword, verifyPassword, isPasswordTooSimilar } from '@/lib/auth';
 
 // Mark route as dynamic since it uses request.headers
 export const dynamic = 'force-dynamic';
@@ -108,6 +108,11 @@ export async function PUT(request: NextRequest) {
       // Validate new password
       if (body.newPassword.length < 8) {
         return NextResponse.json({ error: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร' }, { status: 400 });
+      }
+
+      // Check if new password is too similar to current password
+      if (isPasswordTooSimilar(body.newPassword, body.currentPassword)) {
+        return NextResponse.json({ error: 'รหัสผ่านใหม่ต้องแตกต่างจากรหัสผ่านปัจจุบันอย่างน้อย 30%' }, { status: 400 });
       }
 
       // Update password

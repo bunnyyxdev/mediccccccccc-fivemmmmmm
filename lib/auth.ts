@@ -11,6 +11,90 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   return bcrypt.compare(password, hashedPassword);
 }
 
+/**
+ * Check if new password is too similar to old password
+ * Returns true if passwords are too similar (should be rejected)
+ */
+export function isPasswordTooSimilar(newPassword: string, oldPassword: string): boolean {
+  // Exact match
+  if (newPassword === oldPassword) {
+    return true;
+  }
+
+  // Case-insensitive comparison
+  if (newPassword.toLowerCase() === oldPassword.toLowerCase()) {
+    return true;
+  }
+
+  // Check similarity using Levenshtein distance
+  const similarity = calculateSimilarity(newPassword, oldPassword);
+  if (similarity > 0.7) { // More than 70% similar
+    return true;
+  }
+
+  // Check if new password is just old password with minor changes
+  const minLength = Math.min(newPassword.length, oldPassword.length);
+  const maxLength = Math.max(newPassword.length, oldPassword.length);
+  
+  // If length difference is small (1-2 chars) and similarity is high
+  if (maxLength - minLength <= 2 && similarity > 0.6) {
+    return true;
+  }
+
+  // Check if new password contains old password or vice versa
+  if (newPassword.includes(oldPassword) || oldPassword.includes(newPassword)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Calculate similarity between two strings (0-1, where 1 is identical)
+ */
+function calculateSimilarity(str1: string, str2: string): number {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) {
+    return 1.0;
+  }
+
+  const distance = levenshteinDistance(longer, shorter);
+  return (longer.length - distance) / longer.length;
+}
+
+/**
+ * Calculate Levenshtein distance between two strings
+ */
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix: number[][] = [];
+
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[str2.length][str1.length];
+}
+
 export function generateToken(userId: string, role: string): string {
   if (!userId || !role) {
     throw new Error('generateToken: userId and role are required');
