@@ -272,7 +272,7 @@ export default function TimeTrackingPage() {
         )}
 
         {/* History Section */}
-        <div className="animate-fade-in-delay">
+        <div>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
               <div className="flex items-center space-x-3">
@@ -296,7 +296,7 @@ export default function TimeTrackingPage() {
                 {records.map((record, index) => (
                   <div
                     key={record._id}
-                    className="p-6 hover:bg-gray-50 transition-colors duration-200 animate-fade-in"
+                    className="p-6 hover:bg-gray-50 transition-colors duration-200"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center gap-4">
