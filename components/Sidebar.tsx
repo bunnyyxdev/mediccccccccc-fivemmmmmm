@@ -146,7 +146,6 @@ const adminMenuItems: MenuItem[] = [
     href: '/dashboard/admin/system',
     submenu: [
       { label: 'Activity Log', href: '/dashboard/admin/activity-log', icon: History },
-      { label: 'สำรอง/คืนค่าข้อมูล', href: '/dashboard/admin/backup-restore', icon: Database },
     ],
     roles: ['admin'],
   },

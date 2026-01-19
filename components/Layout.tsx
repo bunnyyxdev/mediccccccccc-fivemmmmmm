@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import axios from 'axios';
 import Sidebar from './Sidebar';
-import PWAInstallPrompt from './PWAInstallPrompt';
 import { verifyToken } from '@/lib/auth';
 
 interface LayoutProps {
@@ -21,12 +20,11 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
   const initializedRef = useRef(false);
   const lastLoggedPathnameRef = useRef<string | null>(null);
   const redirectingRef = useRef(false);
+  const lastAuthCheckRef = useRef<{ requireAuth: boolean; requireRole?: string; userId?: string } | null>(null);
 
   useEffect(() => {
-    // Only run auth check on initial mount or when requireAuth/requireRole changes
-    // Skip if already initialized to prevent flickering on route changes
+    // Only run auth check on initial mount - NEVER re-run this after initialization
     if (initializedRef.current) {
-      // Role validation is handled in a separate effect
       return;
     }
 
@@ -40,13 +38,9 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
     const userStr = localStorage.getItem('user');
 
     if (!token || !userStr) {
-      if (!initializedRef.current && !redirectingRef.current && pathname !== '/login') {
-        redirectingRef.current = true;
-        router.push('/login');
-        setTimeout(() => {
-          redirectingRef.current = false;
-        }, 1000);
-      }
+      setLoading(false);
+      initializedRef.current = true;
+      // Don't redirect here - let the role check effect handle it
       return;
     }
 
@@ -65,26 +59,11 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
           userDataId,
           match: tokenUserId === userDataId
         });
-        if (!initializedRef.current && !redirectingRef.current && pathname !== '/login') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          redirectingRef.current = true;
-          router.push('/login');
-          setTimeout(() => {
-            redirectingRef.current = false;
-          }, 1000);
-        }
-        return;
-      }
-
-      if (requireRole && userData.role !== requireRole) {
-        if (!initializedRef.current && !redirectingRef.current && pathname !== '/dashboard') {
-          redirectingRef.current = true;
-          router.push('/dashboard');
-          setTimeout(() => {
-            redirectingRef.current = false;
-          }, 1000);
-        }
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setLoading(false);
+        initializedRef.current = true;
+        // Don't redirect here - let the role check effect handle it
         return;
       }
 
@@ -99,61 +78,71 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
       initializedRef.current = true;
     } catch (error) {
       console.error('Error parsing user data:', error);
-      if (!initializedRef.current && !redirectingRef.current && pathname !== '/login') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setLoading(false);
+      initializedRef.current = true;
+      // Don't redirect here - let the role check effect handle it
+    }
+  }, []); // ONLY run on mount - never re-run
+  
+  // Separate effect for authentication and role validation - ONLY runs when auth state changes
+  useEffect(() => {
+    // Wait for initialization to complete
+    if (!initializedRef.current || loading || redirectingRef.current) return;
+
+    // Create a key for this auth check (without pathname) to prevent duplicate checks
+    const authCheckKey = JSON.stringify({
+      requireAuth,
+      requireRole,
+      userId: user?._id,
+    });
+
+    // Skip if we already checked this exact auth state
+    if (lastAuthCheckRef.current && JSON.stringify(lastAuthCheckRef.current) === authCheckKey) {
+      return;
+    }
+
+    // Store this check (without pathname)
+    lastAuthCheckRef.current = {
+      requireAuth,
+      requireRole: requireRole || undefined,
+      userId: user?._id,
+    };
+
+    // Read current pathname from the hook (not from dependencies)
+    const currentPath = pathname;
+
+    // Check if authentication is required
+    if (requireAuth && !user) {
+      // No user and auth required - redirect to login
+      if (currentPath !== '/login') {
         redirectingRef.current = true;
         router.push('/login');
         setTimeout(() => {
           redirectingRef.current = false;
-        }, 1000);
+        }, 3000);
       }
+      return;
     }
-  }, [router, requireAuth, requireRole]); // Only run on mount or when auth requirements change
-  
-  // Separate effect for role validation after initialization
-  useEffect(() => {
-    // Only check role after initialization and if user exists
-    if (!initializedRef.current || !user || !requireRole) return;
-    
-    // Only redirect if role doesn't match and we're not already on the target page
-    // Use pathname from closure without adding to deps to prevent loop
-    if (user.role !== requireRole && !redirectingRef.current && pathname !== '/dashboard') {
-      redirectingRef.current = true;
-      router.push('/dashboard');
-      setTimeout(() => {
-        redirectingRef.current = false;
-      }, 1000);
+
+    // Check role if required
+    if (requireRole && user && user.role !== requireRole) {
+      // Role doesn't match - redirect to dashboard
+      if (currentPath !== '/dashboard') {
+        redirectingRef.current = true;
+        router.push('/dashboard');
+        setTimeout(() => {
+          redirectingRef.current = false;
+        }, 3000);
+      }
+      return;
     }
-    // Note: pathname is intentionally not in deps to avoid re-runs on route changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.role, requireRole, router]); // Only check when user role or requireRole changes
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="text-gray-600 animate-pulse-slow">กำลังโหลด...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (requireAuth && !user) {
-    return null;
-  }
-
-  // Ensure role is set correctly - default to 'doctor' if not set
-  const userRole = (user?.role === 'admin' || user?.role === 'doctor') ? user.role : 'doctor';
+  }, [requireAuth, requireRole, user?._id, loading]); // DON'T include pathname or router to prevent loops
 
   // Log IP address when user accesses the page
+  // All hooks must be before any early returns per React Rules of Hooks
   useEffect(() => {
     if (initializedRef.current && user) {
       // Only log if pathname has changed (avoid duplicate logs)
@@ -188,6 +177,30 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, user?._id]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <p className="text-gray-600 animate-pulse-slow">กำลังโหลด...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (requireAuth && !user) {
+    return null;
+  }
+
+  // Ensure role is set correctly - default to 'doctor' if not set
+  const userRole = (user?.role === 'admin' || user?.role === 'doctor') ? user.role : 'doctor';
+
   return (
     <div className="flex min-h-screen bg-gray-50" style={{ minHeight: '100dvh' }}>
       <Sidebar role={userRole} onLogout={handleLogout} />
@@ -196,7 +209,6 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
           {children}
         </div>
       </main>
-      <PWAInstallPrompt />
     </div>
   );
 }
