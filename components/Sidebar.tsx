@@ -28,7 +28,6 @@ import {
   History,
   Download,
   Upload,
-  Megaphone,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -125,7 +124,6 @@ const menuItems: MenuItem[] = [
     href: '/dashboard/others',
     submenu: [
       { label: 'แจ้งลา', href: '/dashboard/others/leave', icon: Calendar },
-      { label: 'สำหรับคำประกาศหมอ', href: '/dashboard/others/announcements', icon: Megaphone },
     ],
     roles: ['doctor', 'admin'] as const,
   },
