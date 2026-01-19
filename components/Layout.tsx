@@ -117,7 +117,9 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
     if (!initializedRef.current || !user || !requireRole) return;
     
     // Only redirect if role doesn't match and we're not already on the target page
-    if (user.role !== requireRole && !redirectingRef.current && pathname !== '/dashboard') {
+    // Check pathname without adding it to dependencies to avoid re-runs on route changes
+    const currentPathname = window.location.pathname;
+    if (user.role !== requireRole && !redirectingRef.current && currentPathname !== '/dashboard') {
       redirectingRef.current = true;
       router.push('/dashboard');
       setTimeout(() => {
@@ -125,7 +127,7 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
       }, 1000);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.role, requireRole, pathname]); // Check when user role or requireRole changes
+  }, [user?.role, requireRole]); // Only check when user role or requireRole changes
 
   const handleLogout = () => {
     localStorage.removeItem('token');
