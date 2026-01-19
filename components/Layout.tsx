@@ -19,6 +19,7 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const initializedRef = useRef(false);
+  const lastLoggedPathnameRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Only run auth check on initial mount or when requireAuth/requireRole changes
@@ -77,7 +78,13 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
         return;
       }
 
-      setUser(userData);
+      // Only update user if it's different (prevent unnecessary re-renders)
+      setUser((prevUser: any) => {
+        if (prevUser && prevUser._id === userData._id && JSON.stringify(prevUser) === JSON.stringify(userData)) {
+          return prevUser; // Return same reference if data hasn't changed
+        }
+        return userData;
+      });
       setLoading(false);
       initializedRef.current = true;
     } catch (error) {
@@ -117,6 +124,13 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
   // Log IP address when user accesses the page
   useEffect(() => {
     if (initializedRef.current && user) {
+      // Only log if pathname has changed (avoid duplicate logs)
+      if (lastLoggedPathnameRef.current === pathname) {
+        return;
+      }
+      
+      lastLoggedPathnameRef.current = pathname;
+      
       const logIP = async () => {
         try {
           const token = localStorage.getItem('token');
@@ -138,7 +152,9 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
       // Log IP on mount and when pathname changes
       logIP();
     }
-  }, [pathname, user]);
+    // Only depend on pathname and user ID, not the entire user object
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, user?._id]);
 
   return (
     <div className="flex min-h-screen bg-gray-50" style={{ minHeight: '100dvh' }}>
