@@ -134,10 +134,10 @@ export default function CustomTimePicker({
         {isOpen && !disabled && (
           <>
             <div
-              className="fixed inset-0 z-40"
+              className="fixed inset-0 z-[9998]"
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute z-50 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-72 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute z-[9999] mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-72 animate-in fade-in slide-in-from-top-2 duration-200">
               {/* Time Spinners */}
               <div className="flex items-center justify-center space-x-4 mb-4">
                 {/* Hours */}
