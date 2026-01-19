@@ -171,7 +171,7 @@ export default function StoryPage() {
     <Layout requireAuth={true}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header Section */}
-        <div className="mb-8 animate-fade-in">
+        <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl shadow-lg">
@@ -200,7 +200,7 @@ export default function StoryPage() {
         </div>
 
         {/* History Section */}
-        <div className="mt-8 animate-fade-in-delay">
+        <div className="mt-8">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
               <div className="flex items-center space-x-3">
@@ -238,7 +238,7 @@ export default function StoryPage() {
                   return (
                     <div
                       key={log._id}
-                      className="p-6 hover:bg-gray-50 transition-colors duration-200 animate-fade-in"
+                      className="p-6 hover:bg-gray-50 transition-colors duration-200"
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
                       <div className="flex flex-col lg:flex-row lg:items-start gap-4">

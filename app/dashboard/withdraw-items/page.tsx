@@ -183,7 +183,7 @@ export default function WithdrawItemsPage() {
     <Layout requireAuth={true}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header Section */}
-        <div className="mb-8 animate-fade-in">
+        <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl shadow-lg">
@@ -211,7 +211,7 @@ export default function WithdrawItemsPage() {
 
         {/* Form Section */}
         {showForm && (
-          <div className="mb-8 animate-slide-down">
+          <div className="mb-8">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -282,7 +282,7 @@ export default function WithdrawItemsPage() {
                       )}
                     </div>
                     {selectedItem && (
-                      <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200 animate-fade-in">
+                      <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-gray-700">สต๊อกคงเหลือ:</span>
                           <span
