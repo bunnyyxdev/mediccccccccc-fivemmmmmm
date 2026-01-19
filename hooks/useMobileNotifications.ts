@@ -31,8 +31,8 @@ export function useMobileNotifications() {
   const showNotification = (title: string, options?: NotificationOptions) => {
     if (permission === 'granted' && typeof window !== 'undefined' && 'Notification' in window) {
       new Notification(title, {
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
         ...options,
       });
     }

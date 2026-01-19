@@ -100,8 +100,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Preview City Medic';
   const options = {
     body: data.body || 'คุณมีการแจ้งเตือนใหม่',
-    icon: '/icon-192x192.png',
-    badge: '/icon-192x192.png',
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
     tag: data.tag || 'notification',
     data: data.url || '/dashboard',
     requireInteraction: data.requireInteraction || false,
