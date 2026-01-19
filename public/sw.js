@@ -1,13 +1,13 @@
 // Service Worker for Offline Support
-const CACHE_NAME = 'preview-city-medic-v1';
-const RUNTIME_CACHE = 'preview-city-medic-runtime-v1';
+const CACHE_NAME = 'preview-city-medic-v2';
+const RUNTIME_CACHE = 'preview-city-medic-runtime-v2';
 
 // Assets to cache on install
+// Note: manifest.json is NOT cached - always fetch from network
 const STATIC_ASSETS = [
   '/',
   '/login',
   '/dashboard',
-  '/manifest.json',
 ];
 
 // Install event - cache static assets
@@ -48,6 +48,11 @@ self.addEventListener('fetch', (event) => {
   // Skip API requests (always use network)
   if (event.request.url.includes('/api/')) {
     return;
+  }
+
+  // Always fetch manifest.json from network (don't cache)
+  if (event.request.url.includes('/manifest.json')) {
+    return fetch(event.request);
   }
 
   event.respondWith(

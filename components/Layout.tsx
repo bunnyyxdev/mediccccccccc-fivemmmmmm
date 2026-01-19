@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import axios from 'axios';
+import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import { verifyToken } from '@/lib/auth';
 
@@ -14,16 +13,11 @@ interface LayoutProps {
 
 export default function Layout({ children, requireAuth = true, requireRole }: LayoutProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const initializedRef = useRef(false);
-  const lastLoggedPathnameRef = useRef<string | null>(null);
-  const redirectingRef = useRef(false);
-  const lastAuthCheckRef = useRef<{ requireAuth: boolean; requireRole?: string; userId?: string } | null>(null);
 
   useEffect(() => {
-    // Only run auth check on initial mount - NEVER re-run this after initialization
     if (initializedRef.current) {
       return;
     }
@@ -40,7 +34,7 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
     if (!token || !userStr) {
       setLoading(false);
       initializedRef.current = true;
-      // Don't redirect here - let the role check effect handle it
+      router.push('/login');
       return;
     }
 
@@ -48,32 +42,27 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
       const userData = JSON.parse(userStr);
       const decoded = verifyToken(token);
 
-      // Compare userId as strings to handle ObjectId conversion
       const tokenUserId = String(decoded?.userId || '');
       const userDataId = String(userData._id || '');
 
       if (!decoded || tokenUserId !== userDataId) {
-        console.log('Token verification failed in Layout:', {
-          hasDecoded: !!decoded,
-          tokenUserId,
-          userDataId,
-          match: tokenUserId === userDataId
-        });
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setLoading(false);
         initializedRef.current = true;
-        // Don't redirect here - let the role check effect handle it
+        router.push('/login');
         return;
       }
 
-      // Only update user if it's different (prevent unnecessary re-renders)
-      setUser((prevUser: any) => {
-        if (prevUser && prevUser._id === userData._id && JSON.stringify(prevUser) === JSON.stringify(userData)) {
-          return prevUser; // Return same reference if data hasn't changed
-        }
-        return userData;
-      });
+      // Check role if required
+      if (requireRole && userData.role !== requireRole) {
+        setLoading(false);
+        initializedRef.current = true;
+        router.push('/dashboard');
+        return;
+      }
+
+      setUser(userData);
       setLoading(false);
       initializedRef.current = true;
     } catch (error) {
@@ -82,100 +71,9 @@ export default function Layout({ children, requireAuth = true, requireRole }: La
       localStorage.removeItem('user');
       setLoading(false);
       initializedRef.current = true;
-      // Don't redirect here - let the role check effect handle it
+      router.push('/login');
     }
-  }, []); // ONLY run on mount - never re-run
-  
-  // Separate effect for authentication and role validation - ONLY runs when auth state changes
-  useEffect(() => {
-    // Wait for initialization to complete
-    if (!initializedRef.current || loading || redirectingRef.current) return;
-
-    // Create a key for this auth check (without pathname) to prevent duplicate checks
-    const authCheckKey = JSON.stringify({
-      requireAuth,
-      requireRole,
-      userId: user?._id,
-    });
-
-    // Skip if we already checked this exact auth state
-    if (lastAuthCheckRef.current && JSON.stringify(lastAuthCheckRef.current) === authCheckKey) {
-      return;
-    }
-
-    // Store this check (without pathname)
-    lastAuthCheckRef.current = {
-      requireAuth,
-      requireRole: requireRole || undefined,
-      userId: user?._id,
-    };
-
-    // Read current pathname from the hook (not from dependencies)
-    const currentPath = pathname;
-
-    // Check if authentication is required
-    if (requireAuth && !user) {
-      // No user and auth required - redirect to login
-      if (currentPath !== '/login') {
-        redirectingRef.current = true;
-        router.push('/login');
-        setTimeout(() => {
-          redirectingRef.current = false;
-        }, 3000);
-      }
-      return;
-    }
-
-    // Check role if required
-    if (requireRole && user && user.role !== requireRole) {
-      // Role doesn't match - redirect to dashboard
-      if (currentPath !== '/dashboard') {
-        redirectingRef.current = true;
-        router.push('/dashboard');
-        setTimeout(() => {
-          redirectingRef.current = false;
-        }, 3000);
-      }
-      return;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requireAuth, requireRole, user?._id, loading]); // DON'T include pathname or router to prevent loops
-
-  // Log IP address when user accesses the page
-  // All hooks must be before any early returns per React Rules of Hooks
-  useEffect(() => {
-    if (initializedRef.current && user) {
-      // Only log if pathname has changed (avoid duplicate logs)
-      if (lastLoggedPathnameRef.current === pathname) {
-        return;
-      }
-      
-      lastLoggedPathnameRef.current = pathname;
-      
-      const logIP = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          if (token) {
-            await axios.post(
-              '/api/ip-log',
-              {},
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-          }
-        } catch (error) {
-          // Silently fail - don't interrupt user experience
-          console.log('IP logging failed:', error);
-        }
-      };
-
-      // Log IP on mount and when pathname changes
-      logIP();
-    }
-    // Only depend on pathname and user ID, not the entire user object
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, user?._id]);
+  }, [requireAuth, requireRole, router]); // Only run when auth requirements change
 
   const handleLogout = () => {
     localStorage.removeItem('token');
