@@ -309,7 +309,7 @@ export default function SuggestionsPage() {
         )}
 
         {/* Suggestions List */}
-        <div className="animate-fade-in-delay">
+        <div>
           {suggestions.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-50 to-pink-50 rounded-full mb-4">
@@ -323,7 +323,7 @@ export default function SuggestionsPage() {
               {suggestions.map((suggestion, index) => (
                 <div
                   key={suggestion._id}
-                  className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 animate-fade-in"
+                  className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div className="p-6">
