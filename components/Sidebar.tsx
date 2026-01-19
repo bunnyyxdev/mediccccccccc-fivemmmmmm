@@ -114,7 +114,7 @@ const menuItems: MenuItem[] = [
   {
     label: 'กฏหมอ',
     icon: BookOpen,
-    href: 'https://kku-creative.my.canva.site/medical-rules-biz-city',
+    href: 'https://simple.com',
     external: true,
     roles: ['doctor', 'admin'] as const,
   },
