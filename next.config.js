@@ -8,9 +8,8 @@ const nextConfig = {
         hostname: '**',
       },
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '3000',
+        protocol: 'https',
+        hostname: 'mediccccccccc-fivemmmmmm.vercel.app',
       },
     ],
   },

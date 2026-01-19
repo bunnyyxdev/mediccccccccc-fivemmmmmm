@@ -192,8 +192,6 @@ export default function LeavePage() {
     }
   };
 
-  const totalDays = leaves.reduce((sum, leave) => sum + leave.duration, 0);
-  const approvedCount = leaves.filter(l => l.status === 'approved').length;
   
   // Filter out pending leaves
   const filteredLeaves = leaves.filter(l => l.status !== 'pending');
@@ -227,31 +225,6 @@ export default function LeavePage() {
             </Button>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">รวมวันลา</p>
-                  <p className="text-2xl font-bold text-blue-700">{totalDays} วัน</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <CalendarDays className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-100 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">อนุมัติแล้ว</p>
-                  <p className="text-2xl font-bold text-emerald-700">{approvedCount}</p>
-                </div>
-                <div className="p-3 bg-emerald-100 rounded-lg">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Form Section */}

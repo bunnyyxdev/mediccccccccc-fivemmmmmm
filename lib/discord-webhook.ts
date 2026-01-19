@@ -90,11 +90,10 @@ async function sendToWebhook(
         }
       } else {
         // Get full URL if it's a relative path
-        // Priority: NEXT_PUBLIC_BASE_URL > VERCEL_URL > provided Vercel URL > localhost (dev only)
+        // Priority: NEXT_PUBLIC_BASE_URL > VERCEL_URL > provided Vercel URL > default Vercel URL
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL 
           || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-          || 'https://mediccccccccc-fivemmmmmmmmmmmm.vercel.app'
-          || 'http://localhost:3000'; // Fallback for local development
+          || 'https://mediccccccccc-fivemmmmmm.vercel.app';
         
         const fullImageUrl = imageUrl.startsWith('http')
           ? imageUrl
