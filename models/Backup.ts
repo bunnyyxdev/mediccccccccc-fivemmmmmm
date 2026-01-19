@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IBackup extends Document {
   version: string;
   timestamp: Date;
-  createdBy: string;
+  createdBy: mongoose.Types.ObjectId;
   createdByName: string;
   collections: Record<string, any[]>;
   fileName?: string;

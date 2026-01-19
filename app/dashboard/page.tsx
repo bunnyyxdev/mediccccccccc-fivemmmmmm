@@ -17,7 +17,6 @@ import {
   Activity, 
   Zap
 } from 'lucide-react';
-import LiveActivityFeed from '@/components/LiveActivityFeed';
 
 interface DashboardStats {
   leave: number;
@@ -391,10 +390,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Live Activity Feed Section */}
-        <div className="animate-fade-in-delay mt-8">
-          <LiveActivityFeed token={typeof window !== 'undefined' ? localStorage.getItem('token') || undefined : undefined} limit={8} />
-        </div>
       </div>
     </Layout>
   );

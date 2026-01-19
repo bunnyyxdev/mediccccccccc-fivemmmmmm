@@ -28,7 +28,6 @@ import {
   History,
   Download,
   Upload,
-  TrendingUp,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -146,7 +145,6 @@ const adminMenuItems: MenuItem[] = [
     icon: Database,
     href: '/dashboard/admin/system',
     submenu: [
-      { label: '📊 Reports & Analytics', href: '/dashboard/admin/analytics', icon: TrendingUp },
       { label: 'Activity Log', href: '/dashboard/admin/activity-log', icon: History },
       { label: 'สำรอง/คืนค่าข้อมูล', href: '/dashboard/admin/backup-restore', icon: Database },
     ],

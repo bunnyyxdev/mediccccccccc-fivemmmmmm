@@ -10,7 +10,7 @@ export interface IBackupSchedule extends Document {
   isActive: boolean;
   lastRun?: Date;
   nextRun?: Date;
-  createdBy: string;
+  createdBy: mongoose.Types.ObjectId;
   createdByName: string;
   retentionDays?: number; // Keep backups for X days (optional, delete after)
   collections?: string[]; // Specific collections to backup (optional, all if empty)

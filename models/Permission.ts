@@ -23,13 +23,11 @@ const PermissionSchema = new Schema<IPermission>(
       unique: true,
       trim: true,
       lowercase: true,
-      index: true,
     },
     category: {
       type: String,
       required: true,
       trim: true,
-      index: true,
     },
     description: {
       type: String,

@@ -28,7 +28,6 @@ const RoleSchema = new Schema<IRole>(
       unique: true,
       trim: true,
       lowercase: true,
-      index: true,
     },
     description: {
       type: String,
