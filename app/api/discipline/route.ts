@@ -153,7 +153,7 @@ async function handlerPOST(request: NextRequest, user: any) {
         '⚖️ โทษวินัยแพทย์ใหม่',
         discordMessage,
         0xf39c12, // Orange color for warning
-        'admin'
+        'withdrawals', // Use remaining webhook type
       );
     } catch (error) {
       console.error('Failed to send Discord notification:', error);

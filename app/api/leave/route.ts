@@ -142,7 +142,7 @@ async function handlerPOST(request: NextRequest, user: any) {
         '📅 แจ้งลาใหม่',
         discordMessage,
         0x3498db, // Blue
-        'admin'
+        'withdrawals', // Use remaining webhook type
       );
     } catch (error) {
       console.error('Failed to send Discord notification:', error);

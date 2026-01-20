@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
         '👤 ผู้ใช้ใหม่ถูกสร้าง',
         discordMessage,
         0x2ecc71, // Green
-        'admin'
+        'withdrawals', // Use remaining webhook type
       );
     } catch (error) {
       // Failed to send Discord notification
@@ -234,7 +234,7 @@ export async function DELETE(request: NextRequest) {
         '🗑️ ลบผู้ใช้ทั้งหมด',
         `**จำนวนผู้ใช้ที่ถูกลบ:** ${deleteResult.deletedCount}\n**ผู้ดูแลระบบที่ยังคงอยู่:** ${currentAdmin.name} (${currentAdmin.username})\n**ดำเนินการโดย:** ${currentAdmin.name}\n**วันที่:** ${new Date().toLocaleString('th-TH')}`,
         0xe74c3c, // Red
-        'admin'
+        'withdrawals', // Use remaining webhook type
       );
     } catch (error) {
       // Failed to send Discord notification

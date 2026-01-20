@@ -61,7 +61,7 @@ export async function createNotification(params: CreateNotificationParams) {
         notification.title,
         notification.message,
         colors[notificationType] || colors.info,
-        'notifications'
+        'withdrawals'
       );
     } catch (error) {
       console.error('Failed to send Discord notification:', error);
@@ -103,7 +103,7 @@ export async function createBulkNotifications(
         `${params.title} (${recipients.length} recipients)`,
         params.message,
         0x3498db,
-        'notifications'
+        'withdrawals'
       );
     } catch (error) {
       console.error('Failed to send Discord notification:', error);

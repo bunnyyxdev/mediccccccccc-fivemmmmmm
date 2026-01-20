@@ -29,6 +29,7 @@ import {
   History,
   Download,
   Upload,
+  Megaphone,
 } from 'lucide-react';
 
 interface SidebarProps {

@@ -42,6 +42,18 @@ export function requireAuth(handler: (request: NextRequest, user: AuthUser) => P
   };
 }
 
+export function requireAuthWithParams(handler: (request: NextRequest, user: AuthUser, params: any) => Promise<NextResponse>) {
+  return async (request: NextRequest, params: any) => {
+    const user = await authenticateRequest(request);
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    return handler(request, user, params);
+  };
+}
+
 export function requireAdmin(handler: (request: NextRequest, user: AuthUser) => Promise<NextResponse>) {
   return async (request: NextRequest) => {
     const user = await authenticateRequest(request);

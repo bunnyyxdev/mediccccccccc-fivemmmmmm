@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send notification - will update existing message if messageId is provided
-    const result = await sendDiscordNotification(title, message, color, 'queues', undefined, messageId);
+    const result = await sendDiscordNotification(title, message, color, 'withdrawals', undefined, messageId);
     
     // Return the message ID for future updates
     return NextResponse.json({ 

@@ -241,28 +241,21 @@ export default function DashboardPage() {
                 <span className="text-xs font-semibold tracking-wider text-indigo-500 uppercase">System Overview</span>
               </div>
               <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                สวัสดี, {user?.name || 'Administrator'}
+                สวัสดี, {user?.name}
               </h1>
               <p className="text-gray-500 mt-1 text-sm">
                 จัดการข้อมูลและดูภาพรวมระบบทั้งหมดได้ที่นี่
               </p>
             </div>
 
-            <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-               <div className="px-3 flex flex-col items-end">
-                  <span className="text-[10px] uppercase font-bold text-gray-400">Last Update</span>
-                  <span className="text-xs font-medium text-gray-700 tabular-nums">
-                    {lastUpdated?.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                  </span>
-               </div>
-               <button
-                onClick={(e) => { e.preventDefault(); fetchStats(true); }}
-                disabled={loading || isRefreshing}
-                className="p-2.5 bg-gray-50 hover:bg-indigo-50 text-gray-600 hover:text-indigo-600 rounded-lg transition-all active:scale-95 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
+            <button
+             onClick={(e) => { e.preventDefault(); fetchStats(true); }}
+             className="p-2 bg-white rounded-xl shadow-sm border border-gray-100 hover:bg-gray-100 transition-colors"
+             title="รีเฟรชข้อมูล"
+            >
+             <RefreshCw className="w-4 h-4 text-gray-600" />
+            </button>
+
           </div>
 
           {/* Stats Grid - Modern Bento Grid Style */}

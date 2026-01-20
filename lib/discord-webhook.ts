@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export type WebhookType = 'general' | 'notifications' | 'withdrawals' | 'admin' | 'activities' | 'feedback' | 'queues' | 'blacklist' | 'error';
+export type WebhookType = 'withdrawals' | 'feedback' | 'blacklist' | 'error';
 
 // Get webhook URLs for a specific type
 function getWebhookUrls(type: WebhookType): string[] {
@@ -10,17 +10,12 @@ function getWebhookUrls(type: WebhookType): string[] {
     if (feedbackUrl) {
       return feedbackUrl.split(',').map(url => url.trim()).filter(Boolean);
     }
-    // Fallback to general webhook if DISCORD_FEEDBACK_URL is not set
-    const generalUrl = process.env.DISCORD_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_GENERAL;
-    return generalUrl ? generalUrl.split(',').map(url => url.trim()).filter(Boolean) : [];
+    return [];
   }
 
-  // First, check for type-specific webhook (e.g., DISCORD_WEBHOOK_NOTIFICATIONS)
+  // Check for type-specific webhook (e.g., DISCORD_WEBHOOK_WITHDRAWALS)
   const typeSpecificKey = `DISCORD_WEBHOOK_${type.toUpperCase()}`;
   const typeSpecificUrl = process.env[typeSpecificKey];
-
-  // Then, check for fallback general webhook
-  const generalUrl = process.env.DISCORD_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_GENERAL;
 
   // Support multiple webhooks per type (comma-separated)
   const urls: string[] = [];
@@ -28,12 +23,6 @@ function getWebhookUrls(type: WebhookType): string[] {
   if (typeSpecificUrl) {
     // Split by comma to support multiple webhooks
     urls.push(...typeSpecificUrl.split(',').map(url => url.trim()).filter(Boolean));
-  }
-  
-  // Only add general webhook if no type-specific webhook is configured
-  // or if it's different from what we already have
-  if (generalUrl && (!typeSpecificUrl || generalUrl !== typeSpecificUrl)) {
-    urls.push(...generalUrl.split(',').map(url => url.trim()).filter(Boolean));
   }
 
   return Array.from(new Set(urls)); // Remove duplicates
@@ -160,7 +149,7 @@ export async function sendDiscordNotification(
   title: string,
   message: string,
   color: number = 0x3498db, // Default blue color
-  webhookType: WebhookType = 'general',
+  webhookType: WebhookType = 'withdrawals',
   imageUrl?: string,
   messageId?: string | null,
   footer?: string
@@ -172,13 +161,9 @@ export async function sendDiscordNotification(
     return { messageId: null };
   }
 
-  // For queue notifications, only send to the first webhook to ensure single message
-  // For other types, can send to all webhooks
-  const urlsToUse = webhookType === 'queues' ? [webhookUrls[0]] : webhookUrls;
-
-  // Send to selected webhooks
+  // Send to all configured webhooks
   const results = await Promise.all(
-    urlsToUse.map(url => sendToWebhook(url, title, message, color, imageUrl, messageId, footer))
+    webhookUrls.map(url => sendToWebhook(url, title, message, color, imageUrl, messageId, footer))
   );
   
   return results[0] || { messageId: null };
@@ -188,7 +173,7 @@ export async function sendDiscordNotification(
 export async function sendSuccessNotification(
   title: string,
   message: string,
-  webhookType: WebhookType = 'general'
+  webhookType: WebhookType = 'withdrawals'
 ) {
   await sendDiscordNotification(title, message, 0x2ecc71, webhookType); // Green
 }
@@ -196,7 +181,7 @@ export async function sendSuccessNotification(
 export async function sendWarningNotification(
   title: string,
   message: string,
-  webhookType: WebhookType = 'general'
+  webhookType: WebhookType = 'withdrawals'
 ) {
   await sendDiscordNotification(title, message, 0xf39c12, webhookType); // Orange
 }
@@ -204,7 +189,7 @@ export async function sendWarningNotification(
 export async function sendErrorNotification(
   title: string,
   message: string,
-  webhookType: WebhookType = 'general'
+  webhookType: WebhookType = 'withdrawals'
 ) {
   await sendDiscordNotification(title, message, 0xe74c3c, webhookType); // Red
 }
