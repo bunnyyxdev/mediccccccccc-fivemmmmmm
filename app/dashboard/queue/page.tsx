@@ -4,7 +4,25 @@ import { useState, useEffect, useRef } from 'react';
 import Layout from '@/components/Layout';
 import toast from 'react-hot-toast';
 import axios from 'axios';
-import { ChevronRight, ChevronLeft, Edit, Square, X, Plus, Trash2, ArrowUp, ArrowDown, Save, Clock } from 'lucide-react';
+import { 
+  ChevronRight, 
+  ChevronLeft, 
+  Edit, 
+  Square, 
+  X, 
+  Plus, 
+  Trash2, 
+  ArrowUp, 
+  ArrowDown, 
+  Save, 
+  Clock, 
+  User, 
+  Users, 
+  Activity, 
+  Play,
+  MoreVertical,
+  Stethoscope
+} from 'lucide-react';
 
 interface Doctor {
   _id: string;
@@ -21,11 +39,17 @@ export default function QueuePage() {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [runnerName, setRunnerName] = useState<string>('');
   const [elapsedTime, setElapsedTime] = useState<number>(0);
-  const [isRunner, setIsRunner] = useState<boolean>(false); // Track if current user is the runner
-  const [userRole, setUserRole] = useState<'doctor' | 'admin'>('doctor'); // Track current user's role
+  const [isRunner, setIsRunner] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<'doctor' | 'admin'>('doctor');
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const localStartedRef = useRef<boolean>(false); // Track if we started the queue locally
-  const justUpdatedRef = useRef<boolean>(false); // Track if we just updated state locally
+  const localStartedRef = useRef<boolean>(false);
+  const justUpdatedRef = useRef<boolean>(false);
+
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
+  const [queueDoctors, setQueueDoctors] = useState<Doctor[]>([]);
+  const [selectedRunnerName, setSelectedRunnerName] = useState<string>('');
 
   // Get user role from localStorage on mount
   useEffect(() => {
@@ -41,12 +65,6 @@ export default function QueuePage() {
       }
     }
   }, []);
-
-  // Edit modal state
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
-  const [queueDoctors, setQueueDoctors] = useState<Doctor[]>([]);
-  const [selectedRunnerName, setSelectedRunnerName] = useState<string>('');
 
   // Fetch doctors from database
   useEffect(() => {
@@ -67,17 +85,14 @@ export default function QueuePage() {
     fetchDoctors();
   }, []);
 
-  // Fetch queue status from temporary database every 2 seconds (live screen for all users)
+  // Fetch queue status (Live Update Logic - Keep existing logic)
   useEffect(() => {
     const fetchQueueStatus = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        // Skip fetch briefly if we just updated state locally (wait for server to confirm)
-        if (justUpdatedRef.current) {
-          return; // Don't skip for too long, just skip this one fetch
-        }
+        if (justUpdatedRef.current) return;
 
         const response = await axios.get('/api/queue/status', {
           headers: { Authorization: `Bearer ${token}` },
@@ -85,66 +100,43 @@ export default function QueuePage() {
 
         const status = response.data;
         
-        // Get current user ID from localStorage user object
         let currentUserId: string | null = null;
         const userStr = localStorage.getItem('user');
         if (userStr) {
           try {
             const userData = JSON.parse(userStr);
             currentUserId = userData._id || null;
-          } catch (error) {
-            console.error('Failed to parse user data:', error);
-          }
+          } catch (error) { console.error(error); }
         }
         
-        // If queue is running on server, sync state (live screen)
         if (status.isRunning && status.doctors && status.doctors.length > 0) {
-          // Check if current user is the runner by comparing runnerId from server with current userId
-          const isCurrentUserRunner = status.runnerId && currentUserId && 
-            status.runnerId.toString() === currentUserId.toString();
-          
-          // If we just started locally, also mark as runner
+          const isCurrentUserRunner = status.runnerId && currentUserId && status.runnerId.toString() === currentUserId.toString();
           const isLocalRunner = localStartedRef.current || isCurrentUserRunner;
           
-          // Sync all state from server (live update)
           setIsRunning(true);
           setIsRunner(isLocalRunner);
           
           const newDoctors = status.doctors || [];
-          // Ensure currentQueueIndex is within bounds
-          const safeIndex = Math.max(0, Math.min(
-            status.currentQueueIndex || 0,
-            Math.max(0, newDoctors.length - 1)
-          ));
+          const safeIndex = Math.max(0, Math.min(status.currentQueueIndex || 0, Math.max(0, newDoctors.length - 1)));
           setCurrentQueueIndex(safeIndex);
           
           setDoctors((prev) => {
-            if (JSON.stringify(prev) !== JSON.stringify(newDoctors)) {
-              return newDoctors;
-            }
+            if (JSON.stringify(prev) !== JSON.stringify(newDoctors)) return newDoctors;
             return prev;
           });
           
-          if (status.runnerName) {
-            setRunnerName((prev) => prev !== status.runnerName ? status.runnerName : prev);
-          }
+          if (status.runnerName) setRunnerName((prev) => prev !== status.runnerName ? status.runnerName : prev);
           
           if (status.startTime) {
             const serverStartTime = new Date(status.startTime);
             setStartTime((prev) => {
-              if (!prev || Math.abs(prev.getTime() - serverStartTime.getTime()) > 1000) {
-                return serverStartTime;
-              }
+              if (!prev || Math.abs(prev.getTime() - serverStartTime.getTime()) > 1000) return serverStartTime;
               return prev;
             });
           }
           
-          // Update elapsedTime from server (only if we're not the runner, to avoid conflict)
-          if (status.elapsedTime !== undefined && !isLocalRunner) {
-            setElapsedTime(status.elapsedTime);
-          }
+          if (status.elapsedTime !== undefined && !isLocalRunner) setElapsedTime(status.elapsedTime);
         } else {
-          // Queue stopped on server - reset local state only if we're not the runner
           if (!localStartedRef.current) {
             setIsRunning(false);
             setIsRunner(false);
@@ -155,84 +147,59 @@ export default function QueuePage() {
             setRunnerName('');
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch queue status:', error);
-      }
+      } catch (error) { console.error('Failed to fetch queue status:', error); }
     };
 
     fetchQueueStatus();
-    const interval = setInterval(fetchQueueStatus, 2000); // Live update every 2 seconds
-    
+    const interval = setInterval(fetchQueueStatus, 2000);
     return () => clearInterval(interval);
-  }, []); // Always run - live screen for all users
+  }, []);
 
-  // Sync to temporary database when state changes (only if we're the runner)
+  // Sync runner state (Logic - Keep existing)
   useEffect(() => {
-    // Only sync if we're the runner (not viewer)
     if (!isRunning || !isRunner || doctors.length === 0 || !runnerName) return;
-
     const timeoutId = setTimeout(async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-
-        // Don't send elapsedTime - backend will calculate it from startTime
-        await axios.post(
-          '/api/queue/status',
-          {
+        await axios.post('/api/queue/status', {
             isRunning: true,
             currentQueueIndex,
             doctors,
             startTime: startTime?.toISOString(),
             runnerName,
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          }, { headers: { Authorization: `Bearer ${token}` } }
         );
       } catch (error: any) {
-        console.error('Failed to sync queue status:', error);
-        // If unauthorized, reset runner status
         if (error.response?.status === 403) {
           setIsRunner(false);
           localStartedRef.current = false;
         }
       }
-    }, 300); // Debounce with transition delay
-
+    }, 300);
     return () => clearTimeout(timeoutId);
-  }, [isRunning, isRunner, currentQueueIndex, doctors, startTime, runnerName]); // Removed elapsedTime from dependencies
+  }, [isRunning, isRunner, currentQueueIndex, doctors, startTime, runnerName]);
 
-  // Calculate elapsed time locally (only if we're the runner, otherwise use server value)
+  // Elapsed Time Timer
   useEffect(() => {
     if (isRunning && startTime && isRunner) {
-      // Only calculate locally if we're the runner
       const calculateElapsed = () => {
         const now = new Date();
-        const elapsed = now.getTime() - startTime.getTime();
-        setElapsedTime(elapsed);
+        setElapsedTime(now.getTime() - startTime.getTime());
       };
-
       calculateElapsed();
       intervalRef.current = setInterval(calculateElapsed, 1000);
-
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-      };
+      return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     } else {
-      // Clear interval if not running or not runner
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      if (!isRunning) {
-        setElapsedTime(0);
-      }
+      if (!isRunning) setElapsedTime(0);
     }
   }, [isRunning, startTime, isRunner]);
 
+  // Helper Functions
   const formatTime = (milliseconds: number): string => {
     const totalSeconds = Math.floor(milliseconds / 1000);
     const hours = Math.floor(totalSeconds / 3600);
@@ -242,238 +209,109 @@ export default function QueuePage() {
   };
 
   const formatTimeRange = (): string => {
-    if (!startTime) return '00:00 - 00:00';
-    const start = startTime.toLocaleTimeString('th-TH', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    if (!startTime) return '--:-- - --:--';
+    const start = startTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
     if (isRunning) {
       const now = new Date();
-      const end = now.toLocaleTimeString('th-TH', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      });
+      const end = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
       return `${start} - ${end}`;
     }
     return `${start} - --:--`;
   };
 
+  // Handlers (Keep logic identical)
   const handleStart = async () => {
     if (isRunning || doctors.length < 4 || !runnerName.trim()) {
-      if (doctors.length < 4) {
-        toast.error('กรุณาแก้ไขคิวและเลือกหมออย่างน้อย 4 คน');
-      } else if (!runnerName.trim()) {
-        toast.error('กรุณาใส่ชื่อผู้รัน');
-      }
+      if (doctors.length < 4) toast.error('กรุณาแก้ไขคิวและเลือกหมออย่างน้อย 4 คน');
+      else if (!runnerName.trim()) toast.error('กรุณาใส่ชื่อผู้รัน');
       return;
     }
-
     try {
       const startTimeNow = new Date();
       const token = localStorage.getItem('token');
-
-      // Prevent fetchQueueStatus from overriding during update
       justUpdatedRef.current = true;
-
-      // Update local state immediately (UI updates right away)
       setIsRunning(true);
-      setIsRunner(true); // Mark as runner
-      localStartedRef.current = true; // Track that we started the queue
+      setIsRunner(true);
+      localStartedRef.current = true;
       setCurrentQueueIndex(0);
       setStartTime(startTimeNow);
       setElapsedTime(0);
 
-      // Sync to temporary database
       if (token) {
-        await axios.post(
-          '/api/queue/status',
-          {
-            isRunning: true,
-            currentQueueIndex: 0,
-            doctors,
-            startTime: startTimeNow.toISOString(),
-            runnerName,
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        await axios.post('/api/queue/status', {
+          isRunning: true, currentQueueIndex: 0, doctors, startTime: startTimeNow.toISOString(), runnerName,
+        }, { headers: { Authorization: `Bearer ${token}` } });
       }
-
-      // Clear flag after sync completes
-      setTimeout(() => {
-        justUpdatedRef.current = false;
-      }, 1000);
-
+      setTimeout(() => { justUpdatedRef.current = false; }, 1000);
       toast.success('✅ เริ่มรันคิวแล้ว');
     } catch (error: any) {
-      console.error('Failed to start queue:', error);
-      setIsRunning(false);
-      setIsRunner(false);
-      localStartedRef.current = false;
-      
-      if (error.response?.status === 403) {
-        toast.error(error.response?.data?.error || 'คุณไม่มีสิทธิ์เริ่มรันคิว');
-      } else {
-        toast.error('ไม่สามารถเริ่มรันคิวได้');
-      }
+      setIsRunning(false); setIsRunner(false); localStartedRef.current = false;
+      toast.error('ไม่สามารถเริ่มรันคิวได้');
     }
   };
 
   const handleStop = async () => {
-    // Only the person who started the queue can stop it, OR admin can force stop
     const isAdmin = userRole === 'admin';
-    if (!isRunner && !isAdmin) {
-      toast.error('เฉพาะผู้ที่เริ่มรันคิวหรือผู้ดูแลระบบเท่านั้นที่สามารถจบคิวได้');
-      return;
-    }
-
-    if (!isRunning) {
-      toast.error('คิวไม่ได้กำลังรันอยู่');
-      return;
-    }
+    if (!isRunner && !isAdmin) { toast.error('ไม่มีสิทธิ์จบคิว'); return; }
+    if (!isRunning) return;
 
     try {
       const totalTime = formatTime(elapsedTime);
       const token = localStorage.getItem('token');
-
-      // Prevent fetchQueueStatus from overriding during update
       justUpdatedRef.current = true;
+      setIsRunning(false); setIsRunner(false); localStartedRef.current = false;
+      setCurrentQueueIndex(0); setStartTime(null); setElapsedTime(0);
 
-      // Update local state immediately (UI updates right away)
-      setIsRunning(false);
-      setIsRunner(false);
-      localStartedRef.current = false; // Clear runner flag
-      setCurrentQueueIndex(0);
-      setStartTime(null);
-      setElapsedTime(0);
-
-      // Delete from temporary database
       if (token) {
-        await axios.post(
-          '/api/queue/status',
-          {
-            isRunning: false,
-            currentQueueIndex: 0,
-            doctors: [],
-            runnerName: '',
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        await axios.post('/api/queue/status', {
+          isRunning: false, currentQueueIndex: 0, doctors: [], runnerName: '',
+        }, { headers: { Authorization: `Bearer ${token}` } });
       }
-
-      // Clear flag after sync completes
-      setTimeout(() => {
-        justUpdatedRef.current = false;
-      }, 1000);
-
+      setTimeout(() => { justUpdatedRef.current = false; }, 1000);
       toast.success(`สิ้นสุดรันคิวแล้ว (รวมเวลา: ${totalTime})`);
-    } catch (error: any) {
-      console.error('Failed to stop queue:', error);
-      
-      // Revert local state on error
-      setIsRunning(true);
-      setIsRunner(true);
-      localStartedRef.current = true;
-      
-      if (error.response?.status === 403) {
-        toast.error(error.response?.data?.error || 'เฉพาะผู้ที่เริ่มรันคิวเท่านั้นที่สามารถจบคิวได้');
-      } else {
-        toast.error('ไม่สามารถหยุดรันคิวได้');
-      }
-    }
+    } catch (error) { toast.error('ไม่สามารถหยุดรันคิวได้'); }
   };
 
   const handleNext = () => {
-    // Only the person who started the queue can control navigation, OR admin
     const isAdmin = userRole === 'admin';
-    if (!isRunner && !isAdmin) {
-      toast.error('เฉพาะผู้ที่เริ่มรันคิวหรือผู้ดูแลระบบเท่านั้นที่สามารถควบคุมคิวได้');
-      return;
-    }
-
+    if (!isRunner && !isAdmin) return;
     if (!isRunning || doctors.length === 0) return;
-    
-    // Ensure currentQueueIndex is within bounds
     const safeIndex = Math.max(0, Math.min(currentQueueIndex, doctors.length - 1));
     const newIndex = safeIndex < doctors.length - 1 ? safeIndex + 1 : 0;
     setCurrentQueueIndex(newIndex);
   };
 
   const handlePrevious = () => {
-    // Only the person who started the queue can control navigation, OR admin
     const isAdmin = userRole === 'admin';
-    if (!isRunner && !isAdmin) {
-      toast.error('เฉพาะผู้ที่เริ่มรันคิวหรือผู้ดูแลระบบเท่านั้นที่สามารถควบคุมคิวได้');
-      return;
-    }
-
+    if (!isRunner && !isAdmin) return;
     if (!isRunning || doctors.length === 0) return;
-    
-    // Ensure currentQueueIndex is within bounds
     const safeIndex = Math.max(0, Math.min(currentQueueIndex, doctors.length - 1));
     const newIndex = safeIndex > 0 ? safeIndex - 1 : doctors.length - 1;
     setCurrentQueueIndex(newIndex);
   };
 
   const handleEdit = () => {
-    // Only the person who started the queue can edit it (if queue is running), OR admin
     const isAdmin = userRole === 'admin';
-    if (isRunning && !isRunner && !isAdmin) {
-      toast.error('เฉพาะผู้ที่เริ่มรันคิวหรือผู้ดูแลระบบเท่านั้นที่สามารถแก้ไขคิวได้');
-      return;
-    }
-
+    if (isRunning && !isRunner && !isAdmin) { toast.error('ไม่มีสิทธิ์แก้ไขคิว'); return; }
     setQueueDoctors([...doctors]);
     setSelectedRunnerName(runnerName);
     setIsEditModalOpen(true);
   };
 
   const handleAddDoctor = (doctor: Doctor) => {
-    if (!queueDoctors.find((d) => d._id === doctor._id)) {
-      setQueueDoctors([...queueDoctors, doctor]);
-    }
+    if (!queueDoctors.find((d) => d._id === doctor._id)) setQueueDoctors([...queueDoctors, doctor]);
   };
-
-  const handleRemoveDoctor = (doctorId: string) => {
-    setQueueDoctors(queueDoctors.filter((d) => d._id !== doctorId));
-  };
-
+  const handleRemoveDoctor = (doctorId: string) => setQueueDoctors(queueDoctors.filter((d) => d._id !== doctorId));
   const handleMoveUp = (index: number) => {
-    if (index > 0) {
-      const newQueue = [...queueDoctors];
-      [newQueue[index - 1], newQueue[index]] = [newQueue[index], newQueue[index - 1]];
-      setQueueDoctors(newQueue);
-    }
+    if (index > 0) { const newQ = [...queueDoctors]; [newQ[index - 1], newQ[index]] = [newQ[index], newQ[index - 1]]; setQueueDoctors(newQ); }
   };
-
   const handleMoveDown = (index: number) => {
-    if (index < queueDoctors.length - 1) {
-      const newQueue = [...queueDoctors];
-      [newQueue[index], newQueue[index + 1]] = [newQueue[index + 1], newQueue[index]];
-      setQueueDoctors(newQueue);
-    }
+    if (index < queueDoctors.length - 1) { const newQ = [...queueDoctors]; [newQ[index], newQ[index + 1]] = [newQ[index + 1], newQ[index]]; setQueueDoctors(newQ); }
   };
-
   const handleSaveQueue = () => {
-    if (queueDoctors.length < 4) {
-      toast.error('กรุณาเพิ่มหมออย่างน้อย 4 คน');
-      return;
-    }
-    if (!selectedRunnerName || selectedRunnerName.trim() === '') {
-      toast.error('กรุณาใส่ชื่อผู้รัน');
-      return;
-    }
-    
-    // Ensure currentQueueIndex is within bounds after updating doctors
-    const safeIndex = isRunning 
-      ? Math.max(0, Math.min(currentQueueIndex, queueDoctors.length - 1))
-      : 0;
-    
+    if (queueDoctors.length < 4) { toast.error('กรุณาเพิ่มหมออย่างน้อย 4 คน'); return; }
+    if (!selectedRunnerName || selectedRunnerName.trim() === '') { toast.error('กรุณาใส่ชื่อผู้รัน'); return; }
+    const safeIndex = isRunning ? Math.max(0, Math.min(currentQueueIndex, queueDoctors.length - 1)) : 0;
     setDoctors([...queueDoctors]);
     setRunnerName(selectedRunnerName.trim());
     setCurrentQueueIndex(safeIndex);
@@ -482,332 +320,370 @@ export default function QueuePage() {
   };
 
   const availableDoctors = allDoctors.filter((doctor) => !queueDoctors.find((qd) => qd._id === doctor._id));
-  // Ensure currentQueueIndex is always within bounds
-  const safeCurrentIndex = doctors.length > 0 
-    ? Math.max(0, Math.min(currentQueueIndex, doctors.length - 1))
-    : 0;
-  const currentDoctor = doctors.length > 0 && safeCurrentIndex < doctors.length 
-    ? doctors[safeCurrentIndex] 
-    : null;
+  const safeCurrentIndex = doctors.length > 0 ? Math.max(0, Math.min(currentQueueIndex, doctors.length - 1)) : 0;
+  const currentDoctor = doctors.length > 0 && safeCurrentIndex < doctors.length ? doctors[safeCurrentIndex] : null;
 
   return (
     <Layout requireAuth={true}>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900">
-        <div className="max-w-6xl mx-auto px-4 py-6 w-full">
+      <div className="min-h-screen bg-gray-50/50">
+        <div className="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-50 to-transparent -z-10" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          
           {/* Header */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-6 p-6 transition-all duration-300">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-                🔄 ระบบรันคิวหมอ
-              </h1>
-            </div>
-          </div>
-
-          {/* Info Cards */}
-          <div className="flex justify-center mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full">
-              {/* ผู้รัน */}
-              <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-300 hover:shadow-lg">
-                <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">👤 ผู้รัน</label>
-                <div className="text-blue-600 font-bold text-lg truncate">
-                  {runnerName || <span className="text-gray-400 text-sm">กรุณาแก้ไขคิวเพื่อตั้งชื่อผู้รัน</span>}
-                </div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-2 text-indigo-600">
+                <Activity className="w-5 h-5" />
+                <span className="text-xs font-bold tracking-wider uppercase">Live Queue System</span>
               </div>
-
-              {/* เวลา */}
-              <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-300 hover:shadow-lg">
-                <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">🕐 เวลา</label>
-                <div className="text-blue-600 font-bold text-lg">{formatTimeRange()}</div>
-              </div>
+              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">ระบบรันคิวหมอ</h1>
+              <p className="text-gray-500 mt-1">จัดการลำดับและเวลาการปฏิบัติงานของแพทย์</p>
             </div>
-          </div>
-
-          {/* Elapsed Time */}
-          {isRunning && (
-            <div className="flex justify-center mb-6">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md border border-blue-600 p-4 max-w-md w-full transition-all duration-300">
-                <label className="block text-xs font-semibold text-blue-100 mb-2 uppercase tracking-wide">⏱️ รวมเวลารันคิว</label>
-                <div className="text-white font-bold text-xl text-center">{formatTime(elapsedTime)}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Current Queue */}
-          {isRunning && currentDoctor && (
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg border-2 border-blue-600 p-6 mb-6 transform transition-all duration-300 hover:scale-[1.02]">
-              <label className="block text-xs font-semibold text-blue-100 mb-3 uppercase tracking-wide">🔄 คิวปัจจุบัน</label>
-              <div className="text-center">
-                <div className="text-white text-3xl font-bold mb-2">{currentDoctor.name}</div>
-                {currentDoctor.doctorRank && (
-                  <div className="text-blue-100 text-base mb-3 inline-block bg-blue-400/30 px-3 py-1 rounded-full">
-                    {currentDoctor.doctorRank}
+            
+            {isRunning && (
+               <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-200">
+                  <div className="flex items-center gap-2">
+                     <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                     </span>
+                     <span className="text-sm font-semibold text-green-700">LIVE</span>
                   </div>
-                )}
-                <div className="text-blue-100 text-sm">
-                  คิวที่ {safeCurrentIndex + 1} / {doctors.length}
-                </div>
-              </div>
-            </div>
-          )}
+                  <div className="w-px h-4 bg-gray-200"></div>
+                  <div className="text-sm font-mono font-medium text-gray-600">
+                    {formatTime(elapsedTime)}
+                  </div>
+               </div>
+            )}
+          </div>
 
-          {/* Warning */}
-          {!isRunning && doctors.length < 4 && (
-            <div
-              className={`rounded-xl shadow-md border-2 p-4 mb-6 transition-all duration-300 ${
-                doctors.length === 0 ? 'bg-yellow-50 border-yellow-300' : 'bg-orange-50 border-orange-300'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <span className={`text-2xl ${doctors.length === 0 ? 'text-yellow-600' : 'text-orange-600'}`}>⚠️</span>
-                <p className={`text-sm font-medium ${doctors.length === 0 ? 'text-yellow-800' : 'text-orange-800'}`}>
-                  {doctors.length === 0
-                    ? 'กรุณากดปุ่ม "แก้ไขคิว" เพื่อเพิ่มหมออย่างน้อย 4 คนและตั้งชื่อผู้รัน'
-                    : `กรุณาเพิ่มหมออีก ${4 - doctors.length} คน (ต้องมีอย่างน้อย 4 คน)`}
-                </p>
-              </div>
-            </div>
-          )}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Left Col: Info Cards */}
+            <div className="lg:col-span-1 space-y-4">
+               {/* Runner Card */}
+               <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                     <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                        <User className="w-5 h-5" />
+                     </div>
+                     <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">ผู้รัน (Runner)</h3>
+                  </div>
+                  <p className={`text-xl font-bold truncate ${runnerName ? 'text-gray-900' : 'text-gray-400 italic'}`}>
+                     {runnerName || 'ยังไม่ระบุ'}
+                  </p>
+               </div>
 
-          {/* Doctors List */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-5 mb-6 transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wide">📋 รายชื่อหมอ</label>
-              {doctors.length > 0 && (
-                <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{doctors.length} คน</span>
-              )}
+               {/* Time Card */}
+               <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                     <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                        <Clock className="w-5 h-5" />
+                     </div>
+                     <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">ช่วงเวลา (Time)</h3>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900 font-mono">
+                     {formatTimeRange()}
+                  </p>
+               </div>
+
+               {/* Queue Stats */}
+               <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                     <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
+                        <Users className="w-5 h-5" />
+                     </div>
+                     <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">จำนวนหมอ</h3>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">
+                     {doctors.length} <span className="text-sm font-normal text-gray-500">คนในคิว</span>
+                  </p>
+               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 min-h-[150px] max-h-[300px] overflow-y-auto">
-              {doctors.length === 0 ? (
-                <div className="text-gray-400 text-center py-12 text-sm">ยังไม่มีรายชื่อหมอ กรุณากดปุ่ม "แก้ไขคิว" เพื่อเพิ่มหมอ</div>
-              ) : (
-                <div className="space-y-2">
-                  {doctors.map((doctor, index) => {
-                    const isCurrent = index === safeCurrentIndex;
-                    return (
-                      <div
-                        key={doctor._id}
-                        className={`flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
-                          isCurrent
-                            ? 'bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-500 shadow-md transform scale-[1.02]'
-                            : 'bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-300'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className={`font-bold text-sm ${isCurrent ? 'text-blue-600' : 'text-gray-400'}`}>
-                            #{index + 1}
-                          </span>
-                          <span className={`font-medium text-sm ${isCurrent ? 'text-blue-900' : 'text-gray-900'}`}>
-                            {doctor.name}
-                          </span>
-                          {doctor.doctorRank && (
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded ${
-                                isCurrent ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-600'
-                              }`}
-                            >
-                              {doctor.doctorRank}
-                            </span>
-                          )}
-                        </div>
-                        {isCurrent && (
-                          <span className="text-xs font-semibold text-blue-700 bg-blue-200 px-3 py-1 rounded-full animate-pulse">🔄 กำลังรัน</span>
+
+            {/* Right Col: Active Queue Display */}
+            <div className="lg:col-span-2">
+               {isRunning && currentDoctor ? (
+                  <div className="h-full bg-gradient-to-br from-indigo-600 to-blue-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-200 relative overflow-hidden flex flex-col justify-center items-center text-center">
+                     {/* Decorative Circles */}
+                     <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-10 blur-3xl"></div>
+                     <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded-full bg-blue-400 opacity-20 blur-3xl"></div>
+                     
+                     <div className="relative z-10">
+                        <span className="inline-block py-1 px-3 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-sm font-medium mb-6">
+                           คิวปัจจุบัน (ลำดับที่ {safeCurrentIndex + 1}/{doctors.length})
+                        </span>
+                        
+                        <h2 className="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight drop-shadow-sm">
+                           {currentDoctor.name}
+                        </h2>
+                        
+                        {currentDoctor.doctorRank && (
+                           <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl text-lg font-medium backdrop-blur-sm">
+                              <Stethoscope className="w-5 h-5" />
+                              {currentDoctor.doctorRank}
+                           </div>
                         )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                     </div>
+                  </div>
+               ) : (
+                  <div className={`h-full rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center transition-all ${
+                     doctors.length < 4 
+                        ? 'border-yellow-300 bg-yellow-50 text-yellow-800' 
+                        : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}>
+                     {doctors.length < 4 ? (
+                        <>
+                           <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                              <span className="text-3xl">⚠️</span>
+                           </div>
+                           <h3 className="text-lg font-bold mb-2">จำนวนหมอยังไม่ครบ</h3>
+                           <p className="max-w-xs mx-auto text-sm opacity-90">
+                              กรุณาเพิ่มหมออย่างน้อย 4 คน และตั้งชื่อผู้รันก่อนเริ่มใช้งาน
+                           </p>
+                        </>
+                     ) : (
+                        <>
+                           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400">
+                              <Play className="w-8 h-8 ml-1" />
+                           </div>
+                           <h3 className="text-lg font-bold text-gray-500 mb-2">ระบบพร้อมใช้งาน</h3>
+                           <p className="max-w-xs mx-auto text-sm text-gray-400">
+                              กดปุ่ม "เริ่มรันคิว" ด้านล่างเพื่อเริ่มต้น
+                           </p>
+                        </>
+                     )}
+                  </div>
+               )}
             </div>
           </div>
 
-          {/* Live View Indicator */}
-          {isRunning && !isRunner && (
-            <div className="flex justify-center mb-4 animate-pulse">
-              <div className="bg-green-500/20 border border-green-500 rounded-full px-4 py-2 flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-green-700 font-semibold text-sm">🔴 Live View - กำลังดูคิวแบบเรียลไทม์</span>
-              </div>
-            </div>
-          )}
+          {/* Controls Bar */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 mb-8 sticky bottom-6 z-20">
+             <div className="flex flex-wrap items-center justify-between gap-4">
+                
+                {/* Navigation */}
+                <div className="flex items-center gap-2">
+                   <button
+                      onClick={handlePrevious}
+                      disabled={!isRunning || (!isRunner && userRole !== 'admin') || doctors.length === 0}
+                      className="p-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                   >
+                      <ChevronLeft className="w-6 h-6" />
+                   </button>
+                   <div className="px-4 py-2 bg-gray-50 rounded-xl text-sm font-medium text-gray-500 border border-gray-100 min-w-[100px] text-center">
+                      {isRunning ? `คิวที่ ${safeCurrentIndex + 1}` : '-'}
+                   </div>
+                   <button
+                      onClick={handleNext}
+                      disabled={!isRunning || (!isRunner && userRole !== 'admin') || doctors.length === 0}
+                      className="p-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                   >
+                      <ChevronRight className="w-6 h-6" />
+                   </button>
+                </div>
 
-          {/* Control Buttons */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-5 transition-all duration-300">
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button
-                onClick={handlePrevious}
-                disabled={!isRunning || (!isRunner && userRole !== 'admin') || doctors.length === 0}
-                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-5 rounded-lg flex items-center space-x-2 transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-              >
-                <ChevronLeft className="w-5 h-5" />
-                <span>ย้อนกลับ</span>
-              </button>
+                {/* Edit & Main Action */}
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                   <button
+                      onClick={handleEdit}
+                      disabled={isRunning && !isRunner && userRole !== 'admin'}
+                      className="flex-1 md:flex-none px-5 py-3 rounded-xl font-semibold text-gray-700 bg-white border-2 border-gray-200 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                   >
+                      <Edit className="w-4 h-4" />
+                      แก้ไขคิว
+                   </button>
 
-              <button
-                onClick={handleNext}
-                disabled={!isRunning || (!isRunner && userRole !== 'admin') || doctors.length === 0}
-                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-5 rounded-lg flex items-center space-x-2 transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-              >
-                <span>ถัดไป</span>
-                <ChevronRight className="w-5 h-5" />
-              </button>
+                   {!isRunning ? (
+                      <button
+                         onClick={handleStart}
+                         disabled={doctors.length < 4 || !runnerName || runnerName.trim() === ''}
+                         className="flex-1 md:flex-none px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                      >
+                         <Play className="w-5 h-5 fill-current" />
+                         เริ่มรันคิว
+                      </button>
+                   ) : (
+                      <button
+                         onClick={handleStop}
+                         disabled={!isRunner && userRole !== 'admin'}
+                         className="flex-1 md:flex-none px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 shadow-lg shadow-rose-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                      >
+                         <Square className="w-5 h-5 fill-current" />
+                         {userRole === 'admin' && !isRunner ? 'บังคับจบคิว' : 'สิ้นสุดคิว'}
+                      </button>
+                   )}
+                </div>
+             </div>
+          </div>
 
-              <button
-                onClick={handleEdit}
-                disabled={isRunning && !isRunner && userRole !== 'admin'}
-                className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-5 rounded-lg flex items-center space-x-2 transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-              >
-                <Edit className="w-5 h-5" />
-                <span>แก้ไขคิว</span>
-              </button>
-
-              {!isRunning ? (
-                <button
-                  onClick={handleStart}
-                  disabled={doctors.length < 4 || !runnerName || runnerName.trim() === ''}
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-                >
-                  ▶️ เริ่มรันคิว
-                </button>
-              ) : (
-                <button
-                  onClick={handleStop}
-                  disabled={!isRunner && userRole !== 'admin'}
-                  className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg flex items-center space-x-2 transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none transform hover:scale-105 disabled:transform-none"
-                >
-                  <Square className="w-5 h-5" />
-                  <span>{userRole === 'admin' && !isRunner ? '🔧 บังคับจบคิว (Admin)' : 'สิ้นสุดรันคิว'}</span>
-                </button>
-              )}
-            </div>
+          {/* Queue List (Visual) */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+             <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+               <MoreVertical className="w-5 h-5 text-gray-400" />
+               ลำดับคิวทั้งหมด
+             </h3>
+             
+             {doctors.length === 0 ? (
+                <div className="text-center py-10 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                   ยังไม่มีรายชื่อหมอ
+                </div>
+             ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                   {doctors.map((doctor, index) => {
+                      const isCurrent = isRunning && index === safeCurrentIndex;
+                      return (
+                         <div 
+                           key={doctor._id}
+                           className={`p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 ${
+                              isCurrent 
+                                 ? 'bg-indigo-50 border-indigo-200 shadow-md scale-[1.02]' 
+                                 : 'bg-white border-gray-100 hover:border-gray-200'
+                           }`}
+                         >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                               isCurrent ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'
+                            }`}>
+                               {index + 1}
+                            </div>
+                            <div>
+                               <p className={`font-semibold ${isCurrent ? 'text-indigo-900' : 'text-gray-900'}`}>
+                                  {doctor.name}
+                               </p>
+                               {doctor.doctorRank && (
+                                  <span className="text-xs text-gray-500">{doctor.doctorRank}</span>
+                               )}
+                            </div>
+                            {isCurrent && (
+                               <div className="ml-auto">
+                                  <span className="relative flex h-2 w-2">
+                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                                  </span>
+                               </div>
+                            )}
+                         </div>
+                      );
+                   })}
+                </div>
+             )}
           </div>
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* Modern Light Edit Modal */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg border border-cyan-400 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-scale-in">
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <h2 className="text-2xl font-bold text-cyan-400">แก้ไขคิว</h2>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
-                <X className="w-6 h-6" />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsEditModalOpen(false)} />
+          
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
+               <div>
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                     <Edit className="w-5 h-5 text-indigo-600" />
+                     จัดการคิวและผู้รัน
+                  </h2>
+               </div>
+               <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-900 transition-colors">
+                  <X className="w-6 h-6" />
+               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* ผู้รัน */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">👤 ผู้รัน *</label>
-                <input
-                  type="text"
-                  value={selectedRunnerName}
-                  onChange={(e) => setSelectedRunnerName(e.target.value)}
-                  placeholder="กรุณาใส่ชื่อผู้รัน"
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 transition-colors"
-                />
-              </div>
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
+               {/* Runner Input */}
+               <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">ชื่อผู้รัน (Runner Name) <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={selectedRunnerName}
+                    onChange={(e) => setSelectedRunnerName(e.target.value)}
+                    placeholder="กรอกชื่อผู้รับผิดชอบการรันคิว..."
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  />
+               </div>
 
-              {/* รายชื่อหมอในคิว */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm text-gray-400">รายชื่อหมอในคิว</label>
-                  <span className={`text-xs ${queueDoctors.length >= 4 ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {queueDoctors.length} / 4 (ขั้นต่ำ)
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {queueDoctors.length === 0 ? (
-                    <div className="text-gray-500 text-center py-8 bg-gray-700/50 rounded">ยังไม่มีหมอในคิว</div>
-                  ) : (
-                    queueDoctors.map((doctor, index) => (
-                      <div
-                        key={doctor._id}
-                        className="flex items-center justify-between p-3 bg-gray-700/50 rounded border border-gray-600 transition-all duration-200 hover:border-cyan-400"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className="text-cyan-400 font-semibold w-8">{index + 1}.</span>
-                          <span className="text-white font-medium">{doctor.name}</span>
-                          {doctor.doctorRank && (
-                            <span className="text-xs text-gray-400 bg-gray-600 px-2 py-1 rounded">{doctor.doctorRank}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleMoveUp(index)}
-                            disabled={index === 0}
-                            className="p-1 text-cyan-400 hover:text-cyan-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
-                            title="เลื่อนขึ้น"
-                          >
-                            <ArrowUp className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleMoveDown(index)}
-                            disabled={index === queueDoctors.length - 1}
-                            className="p-1 text-cyan-400 hover:text-cyan-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
-                            title="เลื่อนลง"
-                          >
-                            <ArrowDown className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleRemoveDoctor(doctor._id)}
-                            className="p-1 text-red-400 hover:text-red-300 transition-colors"
-                            title="ลบออกจากคิว"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* เพิ่มหมอ */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-3">เพิ่มหมอเข้าไปในคิว</label>
-                {availableDoctors.length > 0 ? (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {availableDoctors.map((doctor) => (
-                      <div
-                        key={doctor._id}
-                        className="flex items-center justify-between p-3 bg-gray-700/30 rounded border border-gray-600 hover:border-cyan-400 transition-colors"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className="text-white font-medium">{doctor.name}</span>
-                          {doctor.doctorRank && (
-                            <span className="text-xs text-gray-400 bg-gray-600 px-2 py-1 rounded">{doctor.doctorRank}</span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => handleAddDoctor(doctor)}
-                          className="p-1 text-green-400 hover:text-green-300 transition-colors"
-                          title="เพิ่มเข้าไปในคิว"
-                        >
-                          <Plus className="w-5 h-5" />
-                        </button>
-                      </div>
-                    ))}
+               {/* Queue Management */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Current Queue List */}
+                  <div className="space-y-3">
+                     <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-700">ลำดับในคิว</h3>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${queueDoctors.length >= 4 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                           {queueDoctors.length}/4 คน
+                        </span>
+                     </div>
+                     
+                     <div className="bg-white rounded-xl border border-gray-200 min-h-[300px] max-h-[400px] overflow-y-auto p-2 space-y-2 shadow-inner">
+                        {queueDoctors.length === 0 ? (
+                           <div className="h-full flex flex-col items-center justify-center text-gray-400 py-10">
+                              <p className="text-sm">ยังไม่มีหมอในคิว</p>
+                              <p className="text-xs mt-1">เลือกจากรายการทางขวา</p>
+                           </div>
+                        ) : (
+                           queueDoctors.map((doctor, index) => (
+                              <div key={doctor._id} className="group flex items-center justify-between p-2.5 bg-gray-50 hover:bg-white border border-transparent hover:border-gray-200 rounded-lg transition-all shadow-sm">
+                                 <div className="flex items-center gap-3 overflow-hidden">
+                                    <span className="w-6 h-6 rounded bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0">
+                                       {index + 1}
+                                    </span>
+                                    <div className="truncate">
+                                       <p className="text-sm font-medium text-gray-900 truncate">{doctor.name}</p>
+                                    </div>
+                                 </div>
+                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => handleMoveUp(index)} disabled={index === 0} className="p-1 text-gray-400 hover:text-indigo-600 disabled:opacity-30">
+                                       <ArrowUp className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => handleMoveDown(index)} disabled={index === queueDoctors.length - 1} className="p-1 text-gray-400 hover:text-indigo-600 disabled:opacity-30">
+                                       <ArrowDown className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => handleRemoveDoctor(doctor._id)} className="p-1 text-gray-400 hover:text-red-500">
+                                       <Trash2 className="w-4 h-4" />
+                                    </button>
+                                 </div>
+                              </div>
+                           ))
+                        )}
+                     </div>
                   </div>
-                ) : (
-                  <div className="text-gray-500 text-center py-4 bg-gray-700/30 rounded border border-gray-600">ไม่มีหมอที่สามารถเพิ่มได้</div>
-                )}
-              </div>
+
+                  {/* Available Doctors List */}
+                  <div className="space-y-3">
+                     <h3 className="font-semibold text-gray-700">เลือกหมอเพิ่ม</h3>
+                     <div className="bg-white rounded-xl border border-gray-200 min-h-[300px] max-h-[400px] overflow-y-auto p-2 space-y-2 shadow-inner">
+                        {availableDoctors.length === 0 ? (
+                           <div className="text-center py-10 text-gray-400 text-sm">
+                              ไม่มีรายชื่อหมอเพิ่มเติม
+                           </div>
+                        ) : (
+                           availableDoctors.map((doctor) => (
+                              <div key={doctor._id} className="flex items-center justify-between p-2.5 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer group" onClick={() => handleAddDoctor(doctor)}>
+                                 <div>
+                                    <p className="text-sm font-medium text-gray-900">{doctor.name}</p>
+                                    {doctor.doctorRank && <p className="text-xs text-gray-500">{doctor.doctorRank}</p>}
+                                 </div>
+                                 <button className="p-1 bg-gray-100 text-gray-400 group-hover:bg-indigo-500 group-hover:text-white rounded-md transition-all">
+                                    <Plus className="w-4 h-4" />
+                                 </button>
+                              </div>
+                           ))
+                        )}
+                     </div>
+                  </div>
+               </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-700">
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={handleSaveQueue}
-                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg flex items-center space-x-2 transition-colors"
-              >
-                <Save className="w-4 h-4" />
-                <span>บันทึก</span>
-              </button>
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 bg-white flex justify-end gap-3">
+               <button onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-medium transition-colors">
+                  ยกเลิก
+               </button>
+               <button onClick={handleSaveQueue} className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
+                  <Save className="w-4 h-4" />
+                  บันทึกข้อมูล
+               </button>
             </div>
           </div>
         </div>

@@ -12,10 +12,9 @@ import {
   FileText, 
   Calendar, 
   RefreshCw, 
-  TrendingUp, 
   ArrowRight, 
-  Activity, 
-  Zap
+  Zap,
+  LayoutDashboard
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -37,7 +36,6 @@ interface QueueStatus {
   currentDoctorName?: string;
 }
 
-
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -50,7 +48,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const refreshInterval = 5000; // 5 seconds for real-time updates
+  const refreshInterval = 5000; 
   const [queueStatus, setQueueStatus] = useState<QueueStatus>({
     isRunning: false,
     doctorCount: 0,
@@ -58,9 +56,7 @@ export default function DashboardPage() {
 
   const fetchStats = async (showLoading = false) => {
     try {
-      if (showLoading) {
-        setIsRefreshing(true);
-      }
+      if (showLoading) setIsRefreshing(true);
       const token = localStorage.getItem('token');
       if (token) {
         const response = await axios.get('/api/dashboard/stats', {
@@ -73,9 +69,7 @@ export default function DashboardPage() {
       console.error('Failed to fetch dashboard stats:', error);
     } finally {
       setLoading(false);
-      if (showLoading) {
-        setIsRefreshing(false);
-      }
+      if (showLoading) setIsRefreshing(false);
     }
   };
 
@@ -84,7 +78,6 @@ export default function DashboardPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      // Fetch queue status from API (temporary database)
       const response = await axios.get('/api/queue/status', {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -94,7 +87,6 @@ export default function DashboardPage() {
       if (status.isRunning && status.doctors && status.doctors.length > 0) {
         const currentDoctor = status.doctors[status.currentQueueIndex] || null;
         
-        // Calculate elapsed time in HH:MM:SS format
         let elapsedTimeStr = '';
         if (status.startTime) {
           const startTime = new Date(status.startTime);
@@ -116,7 +108,6 @@ export default function DashboardPage() {
           currentDoctorName: currentDoctor?.name || undefined,
         });
       } else {
-        // Queue is not running
         setQueueStatus({
           isRunning: false,
           doctorCount: 0,
@@ -127,23 +118,16 @@ export default function DashboardPage() {
         });
       }
     } catch (error: any) {
-      // If 404, queue is not running (expected)
       if (error.response?.status !== 404) {
         console.error('Failed to fetch queue status:', error);
       }
-      // Reset to not running state on error
       setQueueStatus({
         isRunning: false,
         doctorCount: 0,
-        currentQueueNumber: undefined,
-        totalDoctors: undefined,
-        elapsedTime: undefined,
-        currentDoctorName: undefined,
       });
     }
   };
 
-  // Initial fetch on mount
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -154,82 +138,58 @@ export default function DashboardPage() {
     setLastUpdated(new Date());
   }, []);
 
-  // Auto-refresh every 5 seconds for stats (real-time sync)
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchStats(false); // Don't show loading indicator for auto-refresh
-      fetchQueueStatus(); // Sync คิวล่าสุดด้วย
+      fetchStats(false);
+      fetchQueueStatus();
     }, refreshInterval);
-    
     return () => clearInterval(interval);
   }, []);
 
-  // Sync คิวทุกๆ 2 วินาที (เร็วกว่า auto-refresh เพื่อให้เห็น real-time)
   useEffect(() => {
     const queueInterval = setInterval(() => {
       fetchQueueStatus();
-    }, 2000); // 2 seconds
-    
+    }, 2000);
     return () => clearInterval(queueInterval);
   }, []);
 
-
+  // Configuration for Cards
   const statCards = [
     {
       label: 'เบิกของในตู้',
       value: loading ? '...' : stats.withdrawItems.toLocaleString('th-TH'),
       icon: Package,
-      gradient: 'from-blue-500 to-cyan-500',
-      bgGradient: 'from-blue-50 to-cyan-50',
-      borderColor: 'border-blue-200',
-      textColor: 'text-blue-700',
-      iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-600',
+      color: 'blue',
       href: '/dashboard/withdraw-items',
       description: stats.recentWithdraws ? `${stats.recentWithdraws} รายการ 7 วันล่าสุด` : 'รายการทั้งหมด',
-      trend: stats.recentWithdraws ? '+' : undefined,
     },
     {
       label: 'ลงเวลาพี่เลี้ยง',
       value: loading ? '...' : stats.timeTracking.toLocaleString('th-TH'),
       icon: Clock,
-      gradient: 'from-emerald-500 to-teal-500',
-      bgGradient: 'from-emerald-50 to-teal-50',
-      borderColor: 'border-emerald-200',
-      textColor: 'text-emerald-700',
-      iconBg: 'bg-emerald-100',
-      iconColor: 'text-emerald-600',
+      color: 'emerald',
       href: '/dashboard/time-tracking',
       description: 'บันทึกการลงเวลา',
     },
     {
-      label: 'รันคิว',
+      label: 'ระบบคิว',
       value: queueStatus.isRunning && queueStatus.currentDoctorName
         ? queueStatus.currentDoctorName
-        : 'ไม่มีคิวที่กำลังรัน',
+        : 'พร้อมใช้งาน',
       icon: Users,
-      gradient: queueStatus.isRunning ? 'from-green-500 to-emerald-500' : 'from-purple-500 to-pink-500',
-      bgGradient: queueStatus.isRunning ? 'from-green-50 to-emerald-50' : 'from-purple-50 to-pink-50',
-      borderColor: queueStatus.isRunning ? 'border-green-200' : 'border-purple-200',
-      textColor: queueStatus.isRunning ? 'text-green-700' : 'text-purple-700',
-      iconBg: queueStatus.isRunning ? 'bg-green-100' : 'bg-purple-100',
-      iconColor: queueStatus.isRunning ? 'text-green-600' : 'text-purple-600',
+      color: queueStatus.isRunning ? 'green' : 'purple',
       href: '/dashboard/queue',
       description: queueStatus.isRunning 
-        ? `คิวปัจจุบัน: ${queueStatus.currentQueueNumber || 0}/${queueStatus.totalDoctors || 0}${queueStatus.elapsedTime ? ` (${queueStatus.elapsedTime})` : ''}`
+        ? `ลำดับที่ ${queueStatus.currentQueueNumber}/${queueStatus.totalDoctors} • ${queueStatus.elapsedTime}`
         : 'จัดการคิวหมอ',
       isActive: queueStatus.isRunning,
+      isSpecial: true, // Mark as special card
     },
     {
       label: 'สตอรี่',
       value: '-',
       icon: Image,
-      gradient: 'from-pink-500 to-rose-500',
-      bgGradient: 'from-pink-50 to-rose-50',
-      borderColor: 'border-pink-200',
-      textColor: 'text-pink-700',
-      iconBg: 'bg-pink-100',
-      iconColor: 'text-pink-600',
+      color: 'pink',
       href: '/dashboard/story',
       description: 'จัดการสตอรี่',
     },
@@ -237,12 +197,7 @@ export default function DashboardPage() {
       label: 'การลา',
       value: loading ? '...' : stats.leave.toLocaleString('th-TH'),
       icon: Calendar,
-      gradient: 'from-orange-500 to-amber-500',
-      bgGradient: 'from-orange-50 to-amber-50',
-      borderColor: 'border-orange-200',
-      textColor: 'text-orange-700',
-      iconBg: 'bg-orange-100',
-      iconColor: 'text-orange-600',
+      color: 'orange',
       href: '/dashboard/others/leave',
       description: stats.pendingLeaves ? `${stats.pendingLeaves} รอการอนุมัติ` : 'รายการทั้งหมด',
     },
@@ -250,146 +205,155 @@ export default function DashboardPage() {
       label: 'โทษวินัย',
       value: loading ? '...' : stats.discipline.toLocaleString('th-TH'),
       icon: FileText,
-      gradient: 'from-red-500 to-rose-500',
-      bgGradient: 'from-red-50 to-rose-50',
-      borderColor: 'border-red-200',
-      textColor: 'text-red-700',
-      iconBg: 'bg-red-100',
-      iconColor: 'text-red-600',
+      color: 'red',
       href: '/dashboard/discipline',
       description: stats.pendingDisciplines ? `${stats.pendingDisciplines} รอดำเนินการ` : 'รายการทั้งหมด',
     },
   ];
 
+  // Helper function to get colors based on prop
+  const getCardStyles = (color: string, isActive: boolean) => {
+    const colors: any = {
+      blue: { bg: 'bg-blue-50', text: 'text-blue-600', icon: 'bg-blue-100', border: 'hover:border-blue-200', ring: 'focus:ring-blue-500' },
+      emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: 'bg-emerald-100', border: 'hover:border-emerald-200', ring: 'focus:ring-emerald-500' },
+      green: { bg: 'bg-green-50', text: 'text-green-600', icon: 'bg-green-100', border: 'hover:border-green-200', ring: 'focus:ring-green-500' },
+      purple: { bg: 'bg-purple-50', text: 'text-purple-600', icon: 'bg-purple-100', border: 'hover:border-purple-200', ring: 'focus:ring-purple-500' },
+      pink: { bg: 'bg-pink-50', text: 'text-pink-600', icon: 'bg-pink-100', border: 'hover:border-pink-200', ring: 'focus:ring-pink-500' },
+      orange: { bg: 'bg-orange-50', text: 'text-orange-600', icon: 'bg-orange-100', border: 'hover:border-orange-200', ring: 'focus:ring-orange-500' },
+      red: { bg: 'bg-red-50', text: 'text-red-600', icon: 'bg-red-100', border: 'hover:border-red-200', ring: 'focus:ring-red-500' },
+    };
+    return colors[color] || colors.blue;
+  };
+
   return (
     <Layout requireAuth={true}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="min-h-screen bg-gray-50/50">
+        {/* Decorative Background Blob */}
+        <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-50/80 to-transparent -z-10" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
             <div>
-              <div className="flex items-center space-x-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
-                  <Activity className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                    Dashboard
-                  </h1>
-                  <p className="text-gray-500 text-sm mt-0.5">
-                    ยินดีต้อนรับ, <span className="font-semibold text-gray-700">{user?.name || 'ผู้ใช้'}</span>
-                  </p>
-                </div>
+              <div className="flex items-center gap-2 mb-1">
+                <LayoutDashboard className="w-5 h-5 text-indigo-500" />
+                <span className="text-xs font-semibold tracking-wider text-indigo-500 uppercase">System Overview</span>
               </div>
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                สวัสดี, {user?.name || 'Administrator'}
+              </h1>
+              <p className="text-gray-500 mt-1 text-sm">
+                จัดการข้อมูลและดูภาพรวมระบบทั้งหมดได้ที่นี่
+              </p>
             </div>
-            <div className="flex items-center space-x-3">
-              {lastUpdated && (
-                <div className="flex items-center space-x-2 text-xs text-gray-500">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>
-                    อัปเดตล่าสุด: {lastUpdated.toLocaleTimeString('th-TH', { 
-                      hour: '2-digit', 
-                      minute: '2-digit', 
-                      second: '2-digit' 
-                    })}
+
+            <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+               <div className="px-3 flex flex-col items-end">
+                  <span className="text-[10px] uppercase font-bold text-gray-400">Last Update</span>
+                  <span className="text-xs font-medium text-gray-700 tabular-nums">
+                    {lastUpdated?.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
-                  {isRefreshing && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 animate-pulse">
-                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></span>
-                      กำลังอัปเดต
-                    </span>
-                  )}
-                </div>
-              )}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  fetchStats(true);
-                }}
+               </div>
+               <button
+                onClick={(e) => { e.preventDefault(); fetchStats(true); }}
                 disabled={loading || isRefreshing}
-                className="flex items-center space-x-2 px-4 py-2.5 text-sm bg-white border-2 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 rounded-xl transition-smooth hover-lift button-press disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-                title="รีเฟรชข้อมูล"
+                className="p-2.5 bg-gray-50 hover:bg-indigo-50 text-gray-600 hover:text-indigo-600 rounded-lg transition-all active:scale-95 disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span>{isRefreshing ? 'กำลังอัปเดต...' : 'รีเฟรช'}</span>
               </button>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Stats Grid - Modern Bento Grid Style */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
             {statCards.map((stat, index) => {
               const Icon = stat.icon;
+              const styles = getCardStyles(stat.color, stat.isActive || false);
+              
               return (
                 <div
                   key={index}
                   onClick={() => router.push(stat.href)}
-                  className={`bg-gradient-to-br ${stat.bgGradient} border-2 ${stat.borderColor} rounded-2xl p-6 cursor-pointer card-hover group transition-smooth`}
-                  style={{ animationDelay: `${index * 0.1}s` }}
+                  className={`
+                    relative group cursor-pointer overflow-hidden
+                    bg-white rounded-2xl p-6
+                    border border-gray-100
+                    shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-[0_8px_30px_-4px_rgba(6,81,237,0.15)]
+                    transition-all duration-300 hover:-translate-y-1
+                    ${stat.isActive ? 'ring-2 ring-green-500 ring-offset-2' : ''}
+                  `}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={`p-2.5 rounded-xl ${styles.icon} ${styles.text}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
                         {stat.isActive && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 animate-pulse">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
-                            กำลังทำงาน
-                          </span>
+                           <span className="relative flex h-2.5 w-2.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                            </span>
                         )}
                       </div>
-                      <p className={`text-3xl font-bold ${stat.textColor} mb-1`}>
+                      <p className="text-sm font-medium text-gray-500 mb-1">{stat.label}</p>
+                      <h3 className={`text-2xl font-bold text-gray-900 tracking-tight ${stat.isSpecial && stat.isActive ? 'text-green-600' : ''}`}>
                         {stat.value}
-                      </p>
-                      {stat.description && (
-                        <p className="text-xs text-gray-600 mt-1">{stat.description}</p>
-                      )}
+                      </h3>
                     </div>
-                    <div className={`${stat.iconBg} p-3 rounded-xl group-hover:scale-110 transition-spring animate-float`}>
-                      <Icon className={`w-6 h-6 ${stat.iconColor}`} />
-                    </div>
+                    
+                    {/* Decorative Icon Background */}
+                    <Icon className={`absolute -right-4 -bottom-4 w-24 h-24 text-gray-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rotate-12`} />
                   </div>
-                  <div className="flex items-center justify-between pt-4 border-t border-white/50">
-                    <span className="text-xs font-medium text-gray-600">ดูรายละเอียด</span>
-                    <ArrowRight className={`w-4 h-4 ${stat.iconColor} group-hover:translate-x-1 transition-smooth`} />
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-400 group-hover:text-gray-600 transition-colors">
+                      {stat.description}
+                    </span>
+                    <div className={`p-1.5 rounded-full bg-gray-50 group-hover:bg-${stat.color}-50 transition-colors`}>
+                      <ArrowRight className={`w-3.5 h-3.5 text-gray-400 group-hover:${styles.text}`} />
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
 
-        {/* Quick Actions Section */}
-        <div>
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Zap className="w-5 h-5 text-indigo-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900">เมนูหลัก</h2>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              {statCards.map((stat, index) => {
-                const Icon = stat.icon;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => router.push(stat.href)}
-                    className="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-gradient-to-br hover:from-gray-100 hover:to-gray-50 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-smooth hover-scale button-press group"
-                  >
-                    <div className={`${stat.iconBg} p-3 rounded-lg mb-3 group-hover:scale-110 transition-spring`}>
-                      <Icon className={`w-6 h-6 ${stat.iconColor}`} />
-                    </div>
-                    <span className="text-xs font-medium text-gray-700 text-center group-hover:text-gray-900">
-                      {stat.label}
-                    </span>
-                  </button>
-                );
-              })}
+          {/* Quick Actions (Shortcut Bar) */}
+          <div className="mt-8">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-500" />
+              เมนูด่วน
+            </h2>
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+               <div className="flex flex-wrap gap-3">
+                  {statCards.map((stat, index) => {
+                    const Icon = stat.icon;
+                    const styles = getCardStyles(stat.color, false);
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => router.push(stat.href)}
+                        className={`
+                          flex items-center gap-3 px-4 py-3 rounded-xl
+                          border border-transparent hover:border-gray-200
+                          bg-gray-50 hover:bg-white
+                          text-gray-600 hover:text-gray-900
+                          transition-all duration-200 active:scale-95
+                          flex-grow sm:flex-grow-0
+                        `}
+                      >
+                        <Icon className={`w-4 h-4 ${styles.text}`} />
+                        <span className="text-sm font-medium">{stat.label}</span>
+                      </button>
+                    )
+                  })}
+               </div>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
     </Layout>
   );
