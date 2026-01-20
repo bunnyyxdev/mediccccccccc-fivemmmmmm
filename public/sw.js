@@ -2,6 +2,9 @@
 const CACHE_NAME = 'preview-city-medic-v4';
 const RUNTIME_CACHE = 'preview-city-medic-runtime-v4';
 
+// Check if we're in development mode
+const isDevelopment = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+
 // Assets to cache on install
 // Note: manifest.json is NOT cached - always fetch from network
 const STATIC_ASSETS = [
@@ -48,6 +51,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
+  // Skip everything in development mode
+  if (isDevelopment) {
+    return;
+  }
+
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
     return;
@@ -55,6 +63,11 @@ self.addEventListener('fetch', (event) => {
 
   // Skip API requests (always use network)
   if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // IMPORTANT: Skip Next.js static assets in development
+  if (event.request.url.includes('/_next/static/')) {
     return;
   }
 

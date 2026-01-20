@@ -70,20 +70,27 @@ export default function RootLayout({
         />
         {children}
         <Toaster position="top-right" />
-        <Script id="sw-register" strategy="afterInteractive">
+        {/* Clear service worker and caches in development */}
+        <Script id="sw-unregister" strategy="beforeInteractive">
           {`
             if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-              window.addEventListener('load', () => {
-                navigator.serviceWorker
-                  .register('/sw.js')
-                  .then((registration) => {
-                    console.log('Service Worker registered:', registration);
-                    setInterval(() => registration.update(), 60 * 60 * 1000);
-                  })
-                  .catch((error) => {
-                    console.error('Service Worker registration failed:', error);
-                  });
+              // Unregister all service workers
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                  registration.unregister();
+                }
               });
+              
+              // Clear all caches
+              if ('caches' in window) {
+                caches.keys().then(function(cacheNames) {
+                  return Promise.all(
+                    cacheNames.map(function(cacheName) {
+                      return caches.delete(cacheName);
+                    })
+                  );
+                });
+              }
             }
           `}
         </Script>
