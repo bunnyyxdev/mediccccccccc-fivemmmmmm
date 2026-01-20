@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Clock, X, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface TimePickerProps {
@@ -31,7 +32,15 @@ export default function CustomTimePicker({
   const [isOpen, setIsOpen] = useState(false);
   const [hours, setHours] = useState('00');
   const [minutes, setMinutes] = useState('00');
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [mounted, setMounted] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Set mounted state for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Parse value on mount and when value changes
   useEffect(() => {
@@ -45,17 +54,42 @@ export default function CustomTimePicker({
     }
   }, [value]);
 
-  // Close dropdown when clicking outside
+  // Calculate dropdown position when opening
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isOpen && buttonRef.current) {
+      const updatePosition = () => {
+        const rect = buttonRef.current!.getBoundingClientRect();
+        const dropdownHeight = 280;
+        const dropdownWidth = 288;
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        
+        // Check if dropdown would go below viewport
+        const spaceBelow = viewportHeight - rect.bottom;
+        const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+        
+        // Check if dropdown would go outside right edge
+        let left = rect.left;
+        if (left + dropdownWidth > viewportWidth) {
+          left = viewportWidth - dropdownWidth - 16;
+        }
+        
+        setDropdownPosition({
+          top: showAbove ? rect.top - dropdownHeight - 8 : rect.bottom + 8,
+          left: Math.max(8, left),
+        });
+      };
+      
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isOpen]);
 
   const handleTimeSelect = (newHours: string, newMinutes: string) => {
     const formattedTime = `${newHours}:${newMinutes}`;
@@ -92,6 +126,92 @@ export default function CustomTimePicker({
     setIsOpen(false);
   };
 
+  const dropdownContent = isOpen && !disabled && mounted && (
+    <>
+      <div
+        className="fixed inset-0"
+        style={{ zIndex: 99998 }}
+        onClick={() => setIsOpen(false)}
+      />
+      <div 
+        className="fixed bg-white rounded-xl shadow-2xl border border-gray-200 p-4"
+        style={{
+          zIndex: 99999,
+          top: dropdownPosition.top,
+          left: dropdownPosition.left,
+          width: '288px',
+        }}
+      >
+        {/* Time Spinners */}
+        <div className="flex items-center justify-center space-x-4 mb-4">
+          {/* Hours */}
+          <div className="flex flex-col items-center">
+            <button
+              type="button"
+              onClick={incrementHours}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronUp className="w-5 h-5 text-gray-600" />
+            </button>
+            <div className="w-16 h-14 flex items-center justify-center bg-blue-50 rounded-lg border-2 border-blue-200">
+              <span className="text-2xl font-bold text-blue-600">{hours}</span>
+            </div>
+            <button
+              type="button"
+              onClick={decrementHours}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronDown className="w-5 h-5 text-gray-600" />
+            </button>
+            <span className="text-xs text-gray-500 mt-1">ชั่วโมง</span>
+          </div>
+
+          <span className="text-3xl font-bold text-gray-400 mb-6">:</span>
+
+          {/* Minutes */}
+          <div className="flex flex-col items-center">
+            <button
+              type="button"
+              onClick={incrementMinutes}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronUp className="w-5 h-5 text-gray-600" />
+            </button>
+            <div className="w-16 h-14 flex items-center justify-center bg-blue-50 rounded-lg border-2 border-blue-200">
+              <span className="text-2xl font-bold text-blue-600">{minutes}</span>
+            </div>
+            <button
+              type="button"
+              onClick={decrementMinutes}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronDown className="w-5 h-5 text-gray-600" />
+            </button>
+            <span className="text-xs text-gray-500 mt-1">นาที</span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={handleClear}
+            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            ล้าง
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+          >
+            ตกลง
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className={className} ref={containerRef}>
       {label && (
@@ -101,6 +221,7 @@ export default function CustomTimePicker({
       )}
       <div className="relative">
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
@@ -131,82 +252,7 @@ export default function CustomTimePicker({
           )}
         </button>
 
-        {isOpen && !disabled && (
-          <>
-            <div
-              className="fixed inset-0 z-[9998]"
-              onClick={() => setIsOpen(false)}
-            />
-            <div className="absolute z-[9999] mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-72 animate-in fade-in slide-in-from-top-2 duration-200">
-              {/* Time Spinners */}
-              <div className="flex items-center justify-center space-x-4 mb-4">
-                {/* Hours */}
-                <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={incrementHours}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronUp className="w-5 h-5 text-gray-600" />
-                  </button>
-                  <div className="w-16 h-14 flex items-center justify-center bg-blue-50 rounded-lg border-2 border-blue-200">
-                    <span className="text-2xl font-bold text-blue-600">{hours}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={decrementHours}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronDown className="w-5 h-5 text-gray-600" />
-                  </button>
-                  <span className="text-xs text-gray-500 mt-1">ชั่วโมง</span>
-                </div>
-
-                <span className="text-3xl font-bold text-gray-400 mb-6">:</span>
-
-                {/* Minutes */}
-                <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={incrementMinutes}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronUp className="w-5 h-5 text-gray-600" />
-                  </button>
-                  <div className="w-16 h-14 flex items-center justify-center bg-blue-50 rounded-lg border-2 border-blue-200">
-                    <span className="text-2xl font-bold text-blue-600">{minutes}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={decrementMinutes}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronDown className="w-5 h-5 text-gray-600" />
-                  </button>
-                  <span className="text-xs text-gray-500 mt-1">นาที</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  ล้าง
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                >
-                  ตกลง
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+        {mounted && createPortal(dropdownContent, document.body)}
       </div>
     </div>
   );

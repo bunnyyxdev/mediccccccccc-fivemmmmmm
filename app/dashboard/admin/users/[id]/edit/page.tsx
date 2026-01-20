@@ -273,7 +273,7 @@ export default function EditUserPage() {
                 <option value="">เลือกตำแหน่งแพทย์ (ไม่บังคับ)</option>
                 {DOCTOR_RANKS.map((rank) => (
                   <option key={rank.value} value={rank.value}>
-                    {rank.value}. {rank.label}
+                    {rank.label}
                   </option>
                 ))}
               </select>
