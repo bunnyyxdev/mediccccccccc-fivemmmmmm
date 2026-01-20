@@ -3,10 +3,25 @@
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import Button from '@/components/Button';
-import Alert from '@/components/Alert';
 import toast from 'react-hot-toast';
 import axios from 'axios';
-import { Ban, Plus, X, Users, FileText, CheckCircle2, Info, User, Calendar, Trash2, AlertCircle, ChevronDown, CheckCircle, XCircle, CheckSquare, Square } from 'lucide-react';
+import { 
+  Ban, 
+  Plus, 
+  X, 
+  FileText, 
+  CheckCircle2, 
+  Calendar, 
+  Trash2, 
+  AlertCircle, 
+  ChevronDown, 
+  CheckCircle, 
+  XCircle,
+  DollarSign,
+  UserX,
+  Shield,
+  Clock
+} from 'lucide-react';
 import { BLACKLIST_CHARGES } from '@/lib/blacklist-charges';
 import DatePickerV2 from '@/components/DatePickerV2';
 
@@ -30,10 +45,10 @@ export default function BlacklistPage() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    charge: '', // ข้อหาจาก dropdown
-    reason: '', // รายละเอียดเพิ่มเติม (optional)
-    fineAmount: '', // ราคาค่าปรับ
-    incidentDate: '', // วันที่เกิดเหตุ
+    charge: '',
+    reason: '',
+    fineAmount: '',
+    incidentDate: '',
   });
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -74,7 +89,7 @@ export default function BlacklistPage() {
         return;
       }
 
-      const response = await axios.post(
+      await axios.post(
         '/api/blacklist',
         {
           name: formData.name,
@@ -91,7 +106,7 @@ export default function BlacklistPage() {
       toast.success('เพิ่มในแบล็คลิสสำเร็จ');
       setFormData({ name: '', charge: '', reason: '', fineAmount: '', incidentDate: '' });
       setShowForm(false);
-      fetchBlacklist(); // Refresh list
+      fetchBlacklist();
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'ไม่สามารถเพิ่มในแบล็คลิสได้';
       toast.error(errorMsg);
@@ -101,9 +116,7 @@ export default function BlacklistPage() {
   };
 
   const handleRemove = async (id: string) => {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้ออกจากแบล็คลิส?')) {
-      return;
-    }
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้ออกจากแบล็คลิส?')) return;
 
     try {
       const token = localStorage.getItem('token');
@@ -117,7 +130,7 @@ export default function BlacklistPage() {
       });
 
       toast.success('ลบออกจากแบล็คลิสแล้ว');
-      fetchBlacklist(); // Refresh list
+      fetchBlacklist();
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'ไม่สามารถลบรายการได้';
       toast.error(errorMsg);
@@ -130,9 +143,7 @@ export default function BlacklistPage() {
       ? 'ยืนยันการอัปเดตสถานะเป็น "ชำระค่าปรับแล้ว"?'
       : 'ยืนยันการอัปเดตสถานะเป็น "ยังไม่ชำระค่าปรับ"?';
 
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+    if (!confirm(confirmMessage)) return;
 
     try {
       const token = localStorage.getItem('token');
@@ -144,28 +155,22 @@ export default function BlacklistPage() {
       await axios.put(
         `/api/blacklist/${id}`,
         { paymentStatus: newStatus },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success(newStatus === 'paid' ? 'อัปเดตสถานะเป็นชำระค่าปรับแล้ว' : 'อัปเดตสถานะเป็นยังไม่ชำระค่าปรับ');
-      fetchBlacklist(); // Refresh list
+      fetchBlacklist();
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'ไม่สามารถอัปเดตสถานะได้';
       toast.error(errorMsg);
     }
   };
 
-  // Bulk Actions Handlers
   const handleToggleSelection = (id: string) => {
     setSelectedItems((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
       return newSet;
     });
   };
@@ -173,10 +178,8 @@ export default function BlacklistPage() {
   const handleSelectAll = () => {
     const itemsWithFine = blacklist.filter((item) => item.fineAmount !== undefined && item.fineAmount > 0);
     if (selectedItems.size === itemsWithFine.length) {
-      // Deselect all
       setSelectedItems(new Set());
     } else {
-      // Select all items with fine
       setSelectedItems(new Set(itemsWithFine.map((item) => item._id)));
     }
   };
@@ -191,9 +194,7 @@ export default function BlacklistPage() {
       ? `ยืนยันการอัปเดตสถานะเป็น "ชำระค่าปรับแล้ว" สำหรับ ${selectedItems.size} รายการ?`
       : `ยืนยันการอัปเดตสถานะเป็น "ยังไม่ชำระค่าปรับ" สำหรับ ${selectedItems.size} รายการ?`;
 
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+    if (!confirm(confirmMessage)) return;
 
     setBulkActionLoading(true);
     const token = localStorage.getItem('token');
@@ -208,20 +209,12 @@ export default function BlacklistPage() {
       let successCount = 0;
       let failCount = 0;
 
-      // Update each item sequentially
       for (const id of selectedIds) {
         try {
-          await axios.put(
-            `/api/blacklist/${id}`,
-            { paymentStatus: status },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
+          await axios.put(`/api/blacklist/${id}`, { paymentStatus: status }, { headers: { Authorization: `Bearer ${token}` } });
           successCount++;
         } catch (error) {
           failCount++;
-          console.error(`Failed to update item ${id}:`, error);
         }
       }
 
@@ -246,9 +239,7 @@ export default function BlacklistPage() {
       return;
     }
 
-    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${selectedItems.size} รายการออกจากแบล็คลิส?`)) {
-      return;
-    }
+    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${selectedItems.size} รายการออกจากแบล็คลิส?`)) return;
 
     setBulkActionLoading(true);
     const token = localStorage.getItem('token');
@@ -263,16 +254,12 @@ export default function BlacklistPage() {
       let successCount = 0;
       let failCount = 0;
 
-      // Delete each item sequentially
       for (const id of selectedIds) {
         try {
-          await axios.delete(`/api/blacklist/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          await axios.delete(`/api/blacklist/${id}`, { headers: { Authorization: `Bearer ${token}` } });
           successCount++;
         } catch (error) {
           failCount++;
-          console.error(`Failed to delete item ${id}:`, error);
         }
       }
 
@@ -291,68 +278,339 @@ export default function BlacklistPage() {
     }
   };
 
+  // Stats
+  const totalFines = blacklist.reduce((sum, item) => sum + (item.fineAmount || 0), 0);
+  const unpaidCount = blacklist.filter(item => item.fineAmount && item.paymentStatus !== 'paid').length;
+  const paidCount = blacklist.filter(item => item.fineAmount && item.paymentStatus === 'paid').length;
+
   return (
     <Layout requireAuth={true}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  แบล็คลิส
-                </h1>
-                <p className="text-gray-500 text-sm mt-0.5">จัดการรายการแบล็คลิส</p>
-              </div>
-            </div>
-            <Button 
-              variant="danger" 
-              onClick={() => setShowForm(!showForm)}
-              className="shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <span className="flex items-center space-x-2">
-                <Plus className="w-5 h-5" />
-                <span>เพิ่มรายการ</span>
-              </span>
-            </Button>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50/50">
+        {/* Decorative Background */}
+        <div className="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-red-50 to-transparent -z-10" />
 
-        {/* Form Section */}
-        {showForm && (
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <FileText className="w-5 h-5 text-white" />
-                    <h2 className="text-xl font-semibold text-white">ฟอร์มเพิ่มรายการแบล็คลิส</h2>
-                  </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-2 text-red-600">
+                <Shield className="w-5 h-5" />
+                <span className="text-xs font-bold tracking-wider uppercase">Blacklist Management</span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
+                แบล็คลิส
+              </h1>
+              <p className="text-gray-500 mt-2">
+                จัดการรายชื่อและค่าปรับของบุคคลที่ถูกขึ้นบัญชีดำ
+              </p>
+            </div>
+            
+            <button
+              onClick={() => setShowForm(true)}
+              className="group flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-red-200 transition-all hover:scale-105 active:scale-95"
+            >
+              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+              <span>เพิ่มรายการ</span>
+            </button>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-red-50 rounded-lg text-red-600">
+                  <UserX className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">รายการทั้งหมด</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{blacklist.length}</p>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">ค่าปรับรวม</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{totalFines.toLocaleString()} <span className="text-sm font-normal text-gray-500">บาท</span></p>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-orange-50 rounded-lg text-orange-600">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">ยังไม่ชำระ</span>
+              </div>
+              <p className="text-2xl font-bold text-orange-600">{unpaidCount}</p>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-green-50 rounded-lg text-green-600">
+                  <CheckCircle className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">ชำระแล้ว</span>
+              </div>
+              <p className="text-2xl font-bold text-green-600">{paidCount}</p>
+            </div>
+          </div>
+
+          {/* Bulk Actions Bar */}
+          {selectedItems.size > 0 && (
+            <div className="bg-white rounded-2xl p-4 mb-6 shadow-lg border border-blue-100 sticky top-4 z-20">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-700">
+                    เลือกแล้ว <span className="text-blue-600 font-bold">{selectedItems.size}</span> รายการ
+                  </span>
                   <button
-                    onClick={() => {
-                      setShowForm(false);
-                      setFormData({ name: '', charge: '', reason: '', fineAmount: '', incidentDate: '' });
-                    }}
-                    className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                    onClick={() => setSelectedItems(new Set())}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                    disabled={bulkActionLoading}
                   >
-                    <X className="w-5 h-5 text-white" />
+                    ล้างการเลือก
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleBulkUpdatePaymentStatus('paid')}
+                    disabled={bulkActionLoading}
+                    className="px-4 py-2 text-sm bg-green-50 hover:bg-green-100 text-green-700 rounded-xl border border-green-200 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span>ชำระแล้ว</span>
+                  </button>
+                  <button
+                    onClick={() => handleBulkUpdatePaymentStatus('unpaid')}
+                    disabled={bulkActionLoading}
+                    className="px-4 py-2 text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl border border-orange-200 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    <span>ยังไม่ชำระ</span>
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={bulkActionLoading}
+                    className="px-4 py-2 text-sm bg-red-50 hover:bg-red-100 text-red-700 rounded-xl border border-red-200 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>ลบ</span>
                   </button>
                 </div>
               </div>
-              <div className="p-6">
+            </div>
+          )}
+
+          {/* List Header */}
+          <div className="bg-white rounded-t-2xl border border-b-0 border-gray-100 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gray-100 rounded-lg text-gray-600">
+                <FileText className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg font-bold text-gray-900">รายการแบล็คลิส</h2>
+            </div>
+            
+            {blacklist.filter((item) => item.fineAmount !== undefined && item.fineAmount > 0).length > 0 && (
+              <button
+                onClick={handleSelectAll}
+                disabled={bulkActionLoading}
+                className="px-3 py-1.5 text-sm bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors disabled:opacity-50"
+              >
+                {selectedItems.size === blacklist.filter((item) => item.fineAmount !== undefined && item.fineAmount > 0).length 
+                  ? 'ยกเลิกเลือกทั้งหมด' 
+                  : 'เลือกทั้งหมด'}
+              </button>
+            )}
+          </div>
+
+          {/* Blacklist Items */}
+          <div className="bg-white rounded-b-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {fetching ? (
+              <div className="p-16 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <Ban className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500">กำลังโหลด...</p>
+              </div>
+            ) : blacklist.length === 0 ? (
+              <div className="p-16 text-center">
+                <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-10 h-10 text-green-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">ไม่มีรายการในแบล็คลิส</h3>
+                <p className="text-gray-500">ยังไม่มีใครถูกเพิ่มในรายการแบล็คลิส</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {blacklist.map((item, index) => {
+                  const isSelected = selectedItems.has(item._id);
+                  const canSelect = item.fineAmount !== undefined && item.fineAmount > 0;
+                  
+                  return (
+                    <div
+                      key={item._id}
+                      className={`p-6 transition-all duration-200 ${
+                        isSelected ? 'bg-blue-50/50' : 'hover:bg-gray-50/50'
+                      }`}
+                    >
+                      <div className="flex gap-4">
+                        {/* Checkbox */}
+                        {canSelect && (
+                          <div className="pt-1">
+                            <button
+                              onClick={() => handleToggleSelection(item._id)}
+                              disabled={bulkActionLoading}
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all disabled:opacity-50 ${
+                                isSelected
+                                  ? 'bg-blue-500 border-blue-500 text-white'
+                                  : 'border-gray-300 hover:border-blue-400'
+                              }`}
+                            >
+                              {isSelected && <CheckCircle className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                            {/* Left: Info */}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-red-100 rounded-xl">
+                                  <Ban className="w-5 h-5 text-red-600" />
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
+                                {item.paymentStatus === 'paid' ? (
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                                    ชำระแล้ว
+                                  </span>
+                                ) : item.fineAmount && item.fineAmount > 0 ? (
+                                  <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
+                                    ยังไม่ชำระ
+                                  </span>
+                                ) : null}
+                              </div>
+                              
+                              <div className="flex items-start gap-2 mb-3">
+                                <AlertCircle className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                                <p className="text-sm text-gray-600">{item.reason}</p>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-3">
+                                {item.fineAmount !== undefined && item.fineAmount > 0 && (
+                                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg border border-amber-200">
+                                    <DollarSign className="w-4 h-4" />
+                                    <span className="text-sm font-semibold">
+                                      {item.fineAmount.toLocaleString('th-TH')} บาท
+                                    </span>
+                                  </div>
+                                )}
+                                
+                                {item.incidentDate && (
+                                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
+                                    <Calendar className="w-4 h-4" />
+                                    <span className="text-sm">
+                                      {new Date(item.incidentDate).toLocaleDateString('th-TH', {
+                                        day: 'numeric', month: 'short', year: 'numeric'
+                                      })}
+                                    </span>
+                                  </div>
+                                )}
+                                
+                                <span className="text-xs text-gray-500">
+                                  เพิ่มโดย {item.addedByName}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Right: Actions */}
+                            <div className="flex items-center gap-2 lg:flex-col lg:items-end">
+                              <span className="text-xs text-gray-400">
+                                {new Date(item.createdAt).toLocaleDateString('th-TH', {
+                                  day: 'numeric', month: 'short', year: 'numeric'
+                                })}
+                              </span>
+                              
+                              <div className="flex items-center gap-2">
+                                {item.fineAmount !== undefined && item.fineAmount > 0 && (
+                                  <button
+                                    onClick={() => handleUpdatePaymentStatus(item._id, item.paymentStatus)}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                                      item.paymentStatus === 'paid'
+                                        ? 'bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200'
+                                        : 'bg-green-50 hover:bg-green-100 text-green-700 border border-green-200'
+                                    }`}
+                                  >
+                                    {item.paymentStatus === 'paid' ? (
+                                      <><XCircle className="w-4 h-4" /><span>ยังไม่ชำระ</span></>
+                                    ) : (
+                                      <><CheckCircle className="w-4 h-4" /><span>ชำระแล้ว</span></>
+                                    )}
+                                  </button>
+                                )}
+                                
+                                <button
+                                  onClick={() => handleRemove(item._id)}
+                                  className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                                  title="ลบรายการ"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Add Form Modal */}
+        {showForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div 
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" 
+              onClick={() => setShowForm(false)}
+            />
+            
+            <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+              {/* Header */}
+              <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-red-500 to-rose-600">
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Ban className="w-6 h-6" />
+                    เพิ่มรายการแบล็คลิส
+                  </h2>
+                  <p className="text-red-100 text-sm mt-1">กรอกข้อมูลเพื่อเพิ่มรายการใหม่</p>
+                </div>
+                <button 
+                  onClick={() => setShowForm(false)}
+                  className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <div className="p-8 max-h-[70vh] overflow-y-auto">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">ชื่อ *</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700">ชื่อ <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                         placeholder="กรอกชื่อ"
                       />
                     </div>
@@ -364,73 +622,74 @@ export default function BlacklistPage() {
                       disablePastDates={false}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">ข้อหา *</label>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">ข้อหา <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <select
                         required
                         value={formData.charge}
                         onChange={(e) => setFormData({ ...formData, charge: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 appearance-none bg-white pr-10"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all appearance-none"
                       >
                         <option value="">-- เลือกข้อหา --</option>
                         {BLACKLIST_CHARGES.map((charge, index) => (
-                          <option key={index} value={charge}>
-                            {charge}
-                          </option>
+                          <option key={index} value={charge}>{charge}</option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">
                       รายละเอียดเพิ่มเติม <span className="text-gray-400 text-xs">(ไม่บังคับ)</span>
                     </label>
                     <textarea
                       value={formData.reason}
                       onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 resize-none"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all resize-none"
                       rows={3}
                       placeholder="กรอกรายละเอียดเพิ่มเติม (ถ้ามี)"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">
                       ราคาค่าปรับ <span className="text-gray-400 text-xs">(ไม่บังคับ)</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                        <span className="text-gray-400 font-medium">บาท</span>
-                      </div>
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">฿</div>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         value={formData.fineAmount}
                         onChange={(e) => setFormData({ ...formData, fineAmount: e.target.value })}
-                        className="w-full pl-16 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                         placeholder="0.00"
                       />
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">กรอกเป็นตัวเลข (บาท) เช่น 1000 หรือ 1500.50</p>
                   </div>
-                  <div className="flex items-center space-x-4 pt-4">
-                    <Button type="submit" variant="danger" isLoading={loading} className="flex-1 sm:flex-none">
-                      <span className="flex items-center space-x-2">
-                        <CheckCircle2 className="w-5 h-5" />
-                        <span>เพิ่มรายการ</span>
-                      </span>
-                    </Button>
+
+                  <div className="pt-4 flex items-center gap-3">
                     <Button 
                       type="button" 
                       variant="secondary" 
                       onClick={() => setShowForm(false)}
-                      className="flex-1 sm:flex-none"
+                      className="flex-1 py-3"
                     >
-                      <span className="flex items-center space-x-2">
-                        <X className="w-5 h-5" />
-                        <span>ยกเลิก</span>
+                      ยกเลิก
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      variant="danger" 
+                      isLoading={loading}
+                      className="flex-[2] py-3 shadow-lg shadow-red-200"
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <CheckCircle2 className="w-5 h-5" />
+                        เพิ่มรายการ
                       </span>
                     </Button>
                   </div>
@@ -439,251 +698,6 @@ export default function BlacklistPage() {
             </div>
           </div>
         )}
-
-        {/* History Section */}
-        <div>
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-gray-200 rounded-lg">
-                    <FileText className="w-5 h-5 text-gray-700" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-gray-900">รายการแบล็คลิส</h2>
-                </div>
-                
-                {/* Bulk Actions */}
-                {blacklist.length > 0 && (
-                  <div className="flex items-center space-x-3">
-                    {selectedItems.size > 0 && (
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600">เลือกแล้ว: {selectedItems.size} รายการ</span>
-                        <button
-                          onClick={() => setSelectedItems(new Set())}
-                          className="text-xs text-gray-500 hover:text-gray-700 underline"
-                          disabled={bulkActionLoading}
-                        >
-                          ล้างการเลือก
-                        </button>
-                      </div>
-                    )}
-                    <button
-                      onClick={handleSelectAll}
-                      disabled={bulkActionLoading || blacklist.filter((item) => item.fineAmount !== undefined && item.fineAmount > 0).length === 0}
-                      className="px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="เลือกทั้งหมด (เฉพาะรายการที่มีค่าปรับ)"
-                    >
-                      {selectedItems.size === blacklist.filter((item) => item.fineAmount !== undefined && item.fineAmount > 0).length ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Bulk Action Buttons */}
-              {selectedItems.size > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-300 flex items-center space-x-3 flex-wrap gap-2">
-                  <span className="text-sm font-medium text-gray-700">Bulk Actions:</span>
-                  <button
-                    onClick={() => handleBulkUpdatePaymentStatus('paid')}
-                    disabled={bulkActionLoading}
-                    className="px-4 py-2 text-sm bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    <span>อัปเดตเป็น "ชำระแล้ว" ({selectedItems.size})</span>
-                  </button>
-                  <button
-                    onClick={() => handleBulkUpdatePaymentStatus('unpaid')}
-                    disabled={bulkActionLoading}
-                    className="px-4 py-2 text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg border border-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    <span>อัปเดตเป็น "ยังไม่ชำระ" ({selectedItems.size})</span>
-                  </button>
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={bulkActionLoading}
-                    className="px-4 py-2 text-sm bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>ลบที่เลือก ({selectedItems.size})</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {fetching ? (
-              <div className="p-12 text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
-                  <Info className="w-10 h-10 text-gray-400 animate-pulse" />
-                </div>
-                <p className="text-gray-500">กำลังโหลด...</p>
-              </div>
-            ) : blacklist.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-50 to-emerald-50 rounded-full mb-4">
-                  <Info className="w-10 h-10 text-green-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">ไม่มีรายการในแบล็คลิส</h3>
-                <p className="text-gray-500">ไม่มีรายการในแบล็คลิส</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {blacklist.map((item, index) => {
-                  const isSelected = selectedItems.has(item._id);
-                  const canSelect = item.fineAmount !== undefined && item.fineAmount > 0;
-                  
-                  return (
-                    <div
-                      key={item._id}
-                      className={`p-6 transition-colors duration-200 ${
-                        isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-gray-50'
-                      }`}
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                        {/* Checkbox */}
-                        {canSelect && (
-                          <div className="flex items-start pt-1">
-                            <button
-                              onClick={() => handleToggleSelection(item._id)}
-                              disabled={bulkActionLoading}
-                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                                isSelected
-                                  ? 'bg-blue-500 border-blue-500 text-white'
-                                  : 'border-gray-300 hover:border-blue-400'
-                              }`}
-                              title={isSelected ? 'ยกเลิกเลือก' : 'เลือก'}
-                            >
-                              {isSelected && <CheckCircle className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        )}
-                        {/* Name Section */}
-                        <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div className="p-2 bg-red-50 rounded-lg">
-                            <Ban className="w-5 h-5 text-red-600" />
-                          </div>
-                          <h3 className="text-lg font-bold text-red-600">{item.name}</h3>
-                        </div>
-                        <div className="flex items-start space-x-2">
-                          <AlertCircle className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                          <p className="text-sm text-gray-700 whitespace-pre-line">{item.reason}</p>
-                        </div>
-                        {item.fineAmount !== undefined && item.fineAmount > 0 && (
-                          <div className="mt-3 space-y-2">
-                            <div className="flex items-center space-x-2 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-lg">
-                              <span className="text-sm font-semibold text-yellow-700">
-                                ค่าปรับ: {item.fineAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
-                              </span>
-                            </div>
-                            {/* Payment Status */}
-                            <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${
-                              item.paymentStatus === 'paid' 
-                                ? 'bg-green-50 border-green-200' 
-                                : 'bg-red-50 border-red-200'
-                            }`}>
-                              {item.paymentStatus === 'paid' ? (
-                                <>
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
-                                  <span className="text-sm font-semibold text-green-700">
-                                    ชำระค่าปรับแล้ว
-                                  </span>
-                                  {item.paidAt && (
-                                    <span className="text-xs text-green-600 ml-2">
-                                      ({new Date(item.paidAt).toLocaleDateString('th-TH', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric'
-                                      })})
-                                    </span>
-                                  )}
-                                  {item.paidByName && (
-                                    <span className="text-xs text-green-600 ml-1">
-                                      โดย {item.paidByName}
-                                    </span>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="w-4 h-4 text-red-600" />
-                                  <span className="text-sm font-semibold text-red-700">
-                                    ยังไม่ชำระค่าปรับ
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                          {item.incidentDate && (
-                            <div className="flex items-center space-x-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg">
-                              <Calendar className="w-3.5 h-3.5" />
-                              <span>วันที่เกิดเหตุ: {new Date(item.incidentDate).toLocaleDateString('th-TH', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric'
-                              })}</span>
-                            </div>
-                          )}
-                          <span>เพิ่มโดย: {item.addedByName}</span>
-                        </div>
-                      </div>
-
-                      {/* Date & Actions Section */}
-                      <div className="flex flex-col items-end space-y-2">
-                        <div className="flex items-center space-x-2 text-sm text-gray-500">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            {new Date(item.createdAt).toLocaleDateString('th-TH', {
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric'
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {/* Update Payment Status Button - Only show if there's a fine amount */}
-                          {item.fineAmount !== undefined && item.fineAmount > 0 && (
-                            <button
-                              onClick={() => handleUpdatePaymentStatus(item._id, item.paymentStatus)}
-                              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-1 ${
-                                item.paymentStatus === 'paid'
-                                  ? 'bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200'
-                                  : 'bg-green-50 hover:bg-green-100 text-green-700 border border-green-200'
-                              }`}
-                              title={item.paymentStatus === 'paid' ? 'เปลี่ยนเป็นยังไม่ชำระค่าปรับ' : 'เปลี่ยนเป็นชำระค่าปรับแล้ว'}
-                            >
-                              {item.paymentStatus === 'paid' ? (
-                                <>
-                                  <XCircle className="w-4 h-4" />
-                                  <span>ยังไม่ชำระ</span>
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle className="w-4 h-4" />
-                                  <span>ชำระแล้ว</span>
-                                </>
-                              )}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleRemove(item._id)}
-                            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors duration-200"
-                            title="ลบรายการ"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </Layout>
   );

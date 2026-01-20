@@ -17,10 +17,11 @@ import {
   Briefcase,
   Zap,
   MoreHorizontal,
-  Info,
-  Users,
   Plus,
   X,
+  CalendarRange,
+  Send,
+  ArrowRight,
   FileText
 } from 'lucide-react';
 import DatePickerV2 from '@/components/DatePickerV2';
@@ -36,6 +37,62 @@ interface Leave {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   createdAt: string;
 }
+
+const LEAVE_TYPE_CONFIG = {
+  sick: { 
+    label: 'ลาป่วย', 
+    icon: Heart, 
+    color: 'bg-red-100 text-red-700 border-red-200',
+    gradient: 'from-red-400 to-rose-500'
+  },
+  personal: { 
+    label: 'ลาส่วนตัว', 
+    icon: User, 
+    color: 'bg-purple-100 text-purple-700 border-purple-200',
+    gradient: 'from-purple-400 to-pink-500'
+  },
+  vacation: { 
+    label: 'ลาพักผ่อน', 
+    icon: Briefcase, 
+    color: 'bg-blue-100 text-blue-700 border-blue-200',
+    gradient: 'from-blue-400 to-cyan-500'
+  },
+  emergency: { 
+    label: 'ลาฉุกเฉิน', 
+    icon: Zap, 
+    color: 'bg-orange-100 text-orange-700 border-orange-200',
+    gradient: 'from-orange-400 to-amber-500'
+  },
+  other: { 
+    label: 'อื่นๆ', 
+    icon: MoreHorizontal, 
+    color: 'bg-gray-100 text-gray-700 border-gray-200',
+    gradient: 'from-gray-400 to-slate-500'
+  },
+};
+
+const STATUS_CONFIG = {
+  pending: { 
+    label: 'รอดำเนินการ', 
+    icon: Clock, 
+    color: 'bg-amber-100 text-amber-700 border-amber-200' 
+  },
+  approved: { 
+    label: 'อนุมัติ', 
+    icon: CheckCircle2, 
+    color: 'bg-emerald-100 text-emerald-700 border-emerald-200' 
+  },
+  rejected: { 
+    label: 'ปฏิเสธ', 
+    icon: XCircle, 
+    color: 'bg-red-100 text-red-700 border-red-200' 
+  },
+  cancelled: { 
+    label: 'ยกเลิก', 
+    icon: Ban, 
+    color: 'bg-gray-100 text-gray-700 border-gray-200' 
+  },
+};
 
 export default function LeavePage() {
   const [leaves, setLeaves] = useState<Leave[]>([]);
@@ -115,147 +172,193 @@ export default function LeavePage() {
     return 0;
   };
 
-  const getLeaveTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      sick: 'ลาป่วย',
-      personal: 'ลาส่วนตัว',
-      vacation: 'ลาพักผ่อน',
-      emergency: 'ลาฉุกเฉิน',
-      other: 'อื่นๆ',
-    };
-    return labels[type] || type;
-  };
-
-  const getLeaveTypeIcon = (type: string) => {
-    switch (type) {
-      case 'sick':
-        return <Heart className="w-4 h-4" />;
-      case 'personal':
-        return <User className="w-4 h-4" />;
-      case 'vacation':
-        return <Briefcase className="w-4 h-4" />;
-      case 'emergency':
-        return <Zap className="w-4 h-4" />;
-      default:
-        return <MoreHorizontal className="w-4 h-4" />;
-    }
-  };
-
-  const getLeaveTypeColor = (type: string) => {
-    switch (type) {
-      case 'sick':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'personal':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'vacation':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'emergency':
-        return 'bg-orange-50 text-orange-700 border-orange-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      pending: 'รอดำเนินการ',
-      approved: 'อนุมัติ',
-      rejected: 'ปฏิเสธ',
-      cancelled: 'ยกเลิก',
-    };
-    return labels[status] || status;
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircle2 className="w-4 h-4" />;
-      case 'rejected':
-        return <XCircle className="w-4 h-4" />;
-      case 'cancelled':
-        return <Ban className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'rejected':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'cancelled':
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-      default:
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-    }
-  };
-
-  
   // Filter out pending leaves
   const filteredLeaves = leaves.filter(l => l.status !== 'pending');
 
   return (
     <Layout requireAuth={true}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-                <Users className="w-6 h-6 text-white" />
+      <div className="min-h-screen bg-gray-50/50">
+        {/* Decorative Background */}
+        <div className="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-50 via-indigo-50/50 to-transparent -z-10" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-2 text-blue-600">
+                <CalendarRange className="w-5 h-5" />
+                <span className="text-xs font-bold tracking-wider uppercase">Leave Management</span>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  ประวัติการลาของทุกคน
-                </h1>
-                <p className="text-gray-500 text-sm mt-0.5">ดูประวัติการลาและวันหยุดของทุกคนในระบบ</p>
-              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
+                แจ้งลา
+              </h1>
+              <p className="text-gray-500 mt-2">
+                ส่งคำขอลาและดูประวัติการลาของทุกคนในระบบ
+              </p>
             </div>
-            <Button 
-              variant="primary" 
-              onClick={() => setShowForm(!showForm)}
-              className="shadow-lg hover:shadow-xl transition-all duration-300"
+            
+            <button
+              onClick={() => setShowForm(true)}
+              className="group flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-blue-200 transition-all hover:scale-105 active:scale-95"
             >
-              <span className="flex items-center space-x-2">
-                <Plus className="w-5 h-5" />
-                <span>ส่งคำขอลา</span>
-              </span>
-            </Button>
+              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+              <span>ส่งคำขอลา</span>
+            </button>
           </div>
 
+          {/* List Header */}
+          <div className="bg-white rounded-t-2xl border border-b-0 border-gray-100 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <FileText className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg font-bold text-gray-900">ประวัติการลาของทุกคน</h2>
+              {filteredLeaves.length > 0 && (
+                <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                  {filteredLeaves.length}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Leaves List */}
+          <div className="bg-white rounded-b-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {loading ? (
+              <div className="p-16 text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <CalendarDays className="w-8 h-8 text-blue-400" />
+                </div>
+                <p className="text-gray-500">กำลังโหลด...</p>
+              </div>
+            ) : filteredLeaves.length === 0 ? (
+              <div className="p-16 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CalendarRange className="w-10 h-10 text-blue-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">ยังไม่มีการแจ้งลา</h3>
+                <p className="text-gray-500 mb-6">ยังไม่มีข้อมูลการลาในระบบ</p>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>ส่งคำขอลาแรก</span>
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {filteredLeaves.map((leave) => {
+                  const leaveTypeConfig = LEAVE_TYPE_CONFIG[leave.leaveType] || LEAVE_TYPE_CONFIG.other;
+                  const statusConfig = STATUS_CONFIG[leave.status] || STATUS_CONFIG.pending;
+                  const LeaveIcon = leaveTypeConfig.icon;
+                  const StatusIcon = statusConfig.icon;
+                  
+                  return (
+                    <div
+                      key={leave._id}
+                      className="p-6 hover:bg-gray-50/50 transition-colors"
+                    >
+                      <div className="flex gap-4">
+                        {/* Leave Type Icon */}
+                        <div className={`w-12 h-12 bg-gradient-to-br ${leaveTypeConfig.gradient} rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg`}>
+                          <LeaveIcon className="w-6 h-6" />
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                            {/* Left: Info */}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap mb-2">
+                                <h3 className="text-lg font-bold text-gray-900">{leave.requestedByName}</h3>
+                                <span className={`px-2.5 py-1 text-xs font-semibold rounded-lg border flex items-center gap-1 ${leaveTypeConfig.color}`}>
+                                  {leaveTypeConfig.label}
+                                </span>
+                                <span className={`px-2.5 py-1 text-xs font-semibold rounded-lg border flex items-center gap-1 ${statusConfig.color}`}>
+                                  <StatusIcon className="w-3.5 h-3.5" />
+                                  {statusConfig.label}
+                                </span>
+                              </div>
+                              
+                              {/* Date Range */}
+                              <div className="flex items-center gap-2 mb-3 text-sm">
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>
+                                    {new Date(leave.startDate).toLocaleDateString('th-TH', {
+                                      day: 'numeric', month: 'short', year: 'numeric'
+                                    })}
+                                  </span>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-400" />
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100">
+                                  <CalendarDays className="w-4 h-4" />
+                                  <span>
+                                    {new Date(leave.endDate).toLocaleDateString('th-TH', {
+                                      day: 'numeric', month: 'short', year: 'numeric'
+                                    })}
+                                  </span>
+                                </div>
+                                <span className="px-2.5 py-1.5 bg-gray-100 text-gray-700 rounded-lg font-semibold">
+                                  {leave.duration} วัน
+                                </span>
+                              </div>
+                              
+                              <p className="text-sm text-gray-600 line-clamp-2">{leave.reason}</p>
+                            </div>
+                            
+                            {/* Right: Created Date */}
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                              <Clock className="w-4 h-4" />
+                              <span>
+                                {new Date(leave.createdAt).toLocaleDateString('th-TH', {
+                                  day: 'numeric', month: 'short', year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Form Section */}
+        {/* Add Form Modal */}
         {showForm && (
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <FileText className="w-5 h-5 text-white" />
-                    <h2 className="text-xl font-semibold text-white">ฟอร์มแจ้งลา</h2>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setShowForm(false);
-                      setFormData({
-                        startDate: '',
-                        endDate: '',
-                        reason: '',
-                      });
-                    }}
-                    className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5 text-white" />
-                  </button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div 
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" 
+              onClick={() => setShowForm(false)}
+            />
+            
+            <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-500 to-indigo-600 shrink-0">
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <CalendarRange className="w-6 h-6" />
+                    ส่งคำขอลา
+                  </h2>
+                  <p className="text-blue-100 text-sm mt-1">กรอกข้อมูลเพื่อส่งคำขอลา</p>
                 </div>
+                <button 
+                  onClick={() => setShowForm(false)}
+                  className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-              
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
+
+              {/* Form Body */}
+              <div className="p-8 overflow-y-auto flex-1">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Date Range */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <DatePickerV2
                       label="วันเริ่มต้นลา"
                       value={formData.startDate}
@@ -263,8 +366,6 @@ export default function LeavePage() {
                       required
                       placeholder="เลือกวันที่เริ่มต้นลา"
                     />
-                  </div>
-                  <div className="space-y-2">
                     <DatePickerV2
                       label="วันสิ้นสุดลา"
                       value={formData.endDate}
@@ -274,166 +375,71 @@ export default function LeavePage() {
                       placeholder="เลือกวันที่สิ้นสุดลา"
                     />
                   </div>
-                </div>
 
-                {formData.startDate && formData.endDate && calculateDuration() > 0 && (
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <CalendarDays className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">จำนวนวันลา</p>
-                        <p className="text-xl font-bold text-blue-700">{calculateDuration()} วัน</p>
+                  {/* Duration Display */}
+                  {formData.startDate && formData.endDate && calculateDuration() > 0 && (
+                    <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                          <CalendarDays className="w-7 h-7" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">จำนวนวันลา</p>
+                          <p className="text-3xl font-bold text-blue-700">{calculateDuration()} <span className="text-lg font-medium">วัน</span></p>
+                        </div>
                       </div>
                     </div>
+                  )}
+
+                  {/* Reason */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">
+                      เหตุผลการลา <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      required
+                      value={formData.reason}
+                      onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                      className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                      rows={5}
+                      placeholder="กรุณากรอกเหตุผลการลา..."
+                    />
                   </div>
-                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    เหตุผลการลา <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    required
-                    value={formData.reason}
-                    onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
-                    rows={4}
-                    placeholder="กรุณากรอกเหตุผลการลา..."
-                  />
-                </div>
-
-                <div className="flex items-center space-x-4 pt-4">
-                  <Button type="submit" variant="primary" isLoading={submitting} className="flex-1 sm:flex-none">
-                    <span className="flex items-center space-x-2">
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span>ส่งคำขอ</span>
-                    </span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      setShowForm(false);
-                      setFormData({
-                        startDate: '',
-                        endDate: '',
-                        reason: '',
-                      });
-                    }}
-                    className="flex-1 sm:flex-none"
-                  >
-                    <span className="flex items-center space-x-2">
-                      <X className="w-5 h-5" />
-                      <span>ยกเลิก</span>
-                    </span>
-                  </Button>
-                </div>
-              </form>
+                  {/* Footer Buttons */}
+                  <div className="flex items-center gap-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        setShowForm(false);
+                        setFormData({
+                          startDate: '',
+                          endDate: '',
+                          reason: '',
+                        });
+                      }}
+                      className="flex-1 py-3"
+                    >
+                      ยกเลิก
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      variant="primary" 
+                      isLoading={submitting}
+                      className="flex-[2] py-3 shadow-lg shadow-blue-200"
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <Send className="w-5 h-5" />
+                        ส่งคำขอลา
+                      </span>
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         )}
-
-        {/* History Section */}
-        <div>
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gray-200 rounded-lg">
-                  <Clock className="w-5 h-5 text-gray-700" />
-                </div>
-                <h2 className="text-xl font-semibold text-gray-900">ประวัติการลาของทุกคน</h2>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="p-12 text-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600 mb-4"></div>
-                <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
-              </div>
-            ) : filteredLeaves.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full mb-4">
-                  <Info className="w-10 h-10 text-blue-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">ยังไม่มีการแจ้งลา</h3>
-                <p className="text-gray-500">ยังไม่มีข้อมูลการลาในระบบ</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {filteredLeaves.map((leave, index) => (
-                  <div
-                    key={leave._id}
-                    className="p-6 hover:bg-gray-50 transition-colors duration-200"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                      {/* Date Section */}
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-blue-50 rounded-lg">
-                            <Calendar className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-0.5">วันเริ่มต้น</p>
-                            <p className="text-sm font-semibold text-gray-900">
-                              {new Date(leave.startDate).toLocaleDateString('th-TH', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric'
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-indigo-50 rounded-lg">
-                            <CalendarDays className="w-5 h-5 text-indigo-600" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-0.5">วันสิ้นสุด</p>
-                            <p className="text-sm font-semibold text-gray-900">
-                              {new Date(leave.endDate).toLocaleDateString('th-TH', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric'
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Middle Section */}
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-medium border ${getLeaveTypeColor(leave.leaveType)}`}>
-                            {getLeaveTypeIcon(leave.leaveType)}
-                            <span>{getLeaveTypeLabel(leave.leaveType)}</span>
-                          </span>
-                          <span className="text-xs text-gray-500">•</span>
-                          <span className="text-sm text-gray-600 font-medium">{leave.duration} วัน</span>
-                        </div>
-                        <p className="text-sm text-gray-700 line-clamp-2">{leave.reason}</p>
-                        <p className="text-xs text-gray-500 flex items-center space-x-1">
-                          <User className="w-3 h-3" />
-                          <span>{leave.requestedByName}</span>
-                        </p>
-                      </div>
-
-                      {/* Status Section */}
-                      <div className="flex items-center justify-between lg:justify-end space-x-4">
-                        <span className={`inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg text-xs font-semibold border ${getStatusColor(leave.status)}`}>
-                          {getStatusIcon(leave.status)}
-                          <span>{getStatusLabel(leave.status)}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </Layout>
   );
