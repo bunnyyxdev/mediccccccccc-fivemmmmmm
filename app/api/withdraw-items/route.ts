@@ -159,10 +159,10 @@ async function handlerPOST(request: NextRequest, user: any) {
       // Get full image URL for Discord
       let imageUrl = item.imageUrl;
       if (imageUrl && !imageUrl.startsWith('http')) {
-        // Priority: NEXT_PUBLIC_BASE_URL > VERCEL_URL > provided Vercel URL > default Vercel URL
+        // Priority: NEXT_PUBLIC_BASE_URL > VERCEL_URL > provided Vercel URL > default localhost
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL 
           || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-          || 'https://mediccccccccc-fivemmmmmm.vercel.app';
+          || 'http://localhost:3000';
         imageUrl = `${baseUrl}${imageUrl}`;
       }
 
