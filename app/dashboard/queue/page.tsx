@@ -75,7 +75,7 @@ export default function QueuePage() {
           const response = await axios.get('/api/admin/users', {
             headers: { Authorization: `Bearer ${token}` },
           });
-          const doctorList = response.data.users.filter((user: any) => user.username !== 'administrator');
+          const doctorList = response.data.users.filter((user: any) => user.role !== 'admin');
           setAllDoctors(doctorList);
         }
       } catch (error) {

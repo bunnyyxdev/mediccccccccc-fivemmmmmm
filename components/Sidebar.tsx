@@ -126,6 +126,7 @@ const menuItems: MenuItem[] = [
     href: '/dashboard/others',
     submenu: [
       { label: 'แจ้งลา', href: '/dashboard/others/leave', icon: Calendar },
+      { label: 'คำประกาศหมอ', href: '/dashboard/others/announcements', icon: Megaphone },
     ],
     roles: ['doctor', 'admin'] as const,
   },
@@ -139,6 +140,7 @@ const adminMenuItems: MenuItem[] = [
     submenu: [
       { label: 'จัดการผู้ใช้', href: '/dashboard/admin/users', icon: Users },
       { label: 'ออกใบอนุญาติขับฮอ', href: '/dashboard/admin/driver-license', icon: Car },
+      { label: 'จัดการคำประกาศ', href: '/dashboard/admin/announcements', icon: Megaphone },
     ],
     roles: ['admin'],
   },
@@ -227,6 +229,7 @@ export default function Sidebar({ role = 'doctor', onLogout }: SidebarProps) {
               width={140}
               height={70}
               className="object-contain mb-2"
+              style={{ width: 'auto', height: 'auto' }}
               priority
             />
             <p className="text-xs text-gray-400">Medic Management System</p>

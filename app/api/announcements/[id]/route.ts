@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import { requireAuthWithParams, handleApiError, AuthUser } from '@/lib/api-helpers';
-import { sendDiscordNotification } from '@/lib/discord-webhook';
 import { logActivity } from '@/lib/activity-log';
 import mongoose from 'mongoose';
 
@@ -66,11 +65,34 @@ const AnnouncementSchema = new mongoose.Schema<IAnnouncement>({
 
 const Announcement = (mongoose.models.Announcement as mongoose.Model<IAnnouncement>) || mongoose.model<IAnnouncement>('Announcement', AnnouncementSchema);
 
-async function handlerPUT(request: NextRequest, user: AuthUser, params: { id: string }) {
+// Helper to safely extract ID from params or URL
+async function getIdFromRequest(request: Request, params: Promise<any>) {
+  // 1. Try to get from params
+  const resolvedParams = await params;
+  let id = resolvedParams?.id || resolvedParams?.announcementId;
+
+  // 2. Fallback: Extract from URL path if params failed
+  if (!id) {
+    const url = new URL(request.url);
+    const pathSegments = url.pathname.split('/').filter(Boolean);
+    id = pathSegments.pop(); // Get the last segment
+  }
+  
+  return id?.trim();
+}
+
+// ==========================================
+// PUT HANDLER
+// ==========================================
+async function handlerPUT(request: NextRequest, user: AuthUser, params: Promise<any>) {
   try {
-    await connectDB();
+    // 1. Get ID safely
+    const id = await getIdFromRequest(request, params);
+    
+    // 2. Parse Body
     const body = await request.json();
-    const { id } = params;
+
+    await connectDB();
 
     const userDoc = await mongoose.connection.db.collection('users').findOne({ _id: new mongoose.Types.ObjectId(user.userId) });
     if (!userDoc) {
@@ -90,17 +112,23 @@ async function handlerPUT(request: NextRequest, user: AuthUser, params: { id: st
       );
     }
 
-    const announcement = await Announcement.findOne({ _id: id });
-    if (!announcement) {
-      return NextResponse.json({ error: 'ไม่พบคำประกาศ' }, { status: 404 });
+    // 3. Validate ID format
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ 
+        error: "Invalid ID format", 
+        debug_id: id 
+      }, { status: 400 });
     }
 
-    // Update fields
-    announcement.title = body.title;
-    announcement.content = body.content;
-    announcement.category = body.category || announcement.category;
-    
-    const updatedAnnouncement = await announcement.save();
+    const updatedAnnouncement = await Announcement.findByIdAndUpdate(
+      id,
+      body,
+      { new: true }
+    );
+
+    if (!updatedAnnouncement) {
+      return NextResponse.json({ error: "ไม่พบคำประกาศ" }, { status: 404 });
+    }
 
     // Log activity
     try {
@@ -115,7 +143,7 @@ async function handlerPUT(request: NextRequest, user: AuthUser, params: { id: st
         performedBy: user.userId,
         performedByName: userDoc.name || userDoc.username,
         metadata: {
-          oldTitle: announcement.title,
+          oldTitle: updatedAnnouncement.title,
           newTitle: updatedAnnouncement.title,
           category: updatedAnnouncement.category,
         },
@@ -126,35 +154,39 @@ async function handlerPUT(request: NextRequest, user: AuthUser, params: { id: st
       console.error('Failed to log activity:', error);
     }
 
-    // Send Discord notification
-    try {
-      let discordMessage = `**หัวข้อ:** ${updatedAnnouncement.title}\n`;
-      discordMessage += `**เนื้อหา:** ${updatedAnnouncement.content.substring(0, 200)}${updatedAnnouncement.content.length > 200 ? '...' : ''}\n`;
-      discordMessage += `**อัปเดตโดย:** ${userDoc.name || userDoc.username}\n`;
-      discordMessage += `**วันที่อัปเดต:** ${new Date(updatedAnnouncement.updatedAt).toLocaleString('th-TH')}\n`;
-
-      await sendDiscordNotification(
-        '📝 อัปเดตคำประกาศ',
-        discordMessage,
-        0xf39c12, // Orange
-        'withdrawals'
-      );
-    } catch (error) {
-      console.error('Failed to send Discord notification:', error);
-    }
-
-    return NextResponse.json({ data: updatedAnnouncement });
+    return NextResponse.json({ 
+      success: true, 
+      data: updatedAnnouncement,
+      message: 'อัปเดตคำประกาศเรียบร้อยแล้ว'
+    });
   } catch (error: any) {
     return handleApiError(error);
   }
 }
 
-async function handlerDELETE(request: NextRequest, user: AuthUser, params: { id: string }) {
+// ==========================================
+// DELETE HANDLER
+// ==========================================
+async function handlerDELETE(request: NextRequest, user: AuthUser, params: Promise<any>) {
   try {
     await connectDB();
-    const { id } = params;
+    
+    // 1. Get ID safely (Bulletproof method)
+    const id = await getIdFromRequest(request, params);
+
+    // Debug log
+    console.log(`DELETE Request - Final Extracted ID: ${id}`);
+
+    // 2. Validate ID
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ 
+        error: "Invalid announcement ID format",
+        debug_id: id
+      }, { status: 400 });
+    }
 
     const userDoc = await mongoose.connection.db.collection('users').findOne({ _id: new mongoose.Types.ObjectId(user.userId) });
+    
     if (!userDoc) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -164,12 +196,12 @@ async function handlerDELETE(request: NextRequest, user: AuthUser, params: { id:
       return NextResponse.json({ error: 'ไม่มีสิทธิ์ในการลบคำประกาศ' }, { status: 403 });
     }
 
-    const announcement = await Announcement.findOne({ _id: id });
-    if (!announcement) {
-      return NextResponse.json({ error: 'ไม่พบคำประกาศ' }, { status: 404 });
-    }
+    // Find and Delete
+    const announcement = await Announcement.findByIdAndDelete(id);
 
-    await Announcement.deleteOne({ _id: id });
+    if (!announcement) {
+      return NextResponse.json({ error: "ไม่พบคำประกาศ หรืออาจถูกลบไปแล้ว" }, { status: 404 });
+    }
 
     // Log activity
     try {
@@ -192,23 +224,6 @@ async function handlerDELETE(request: NextRequest, user: AuthUser, params: { id:
       });
     } catch (error) {
       console.error('Failed to log activity:', error);
-    }
-
-    // Send Discord notification
-    try {
-      let discordMessage = `**หัวข้อ:** ${announcement.title}\n`;
-      discordMessage += `**เนื้อหา:** ${announcement.content.substring(0, 200)}${announcement.content.length > 200 ? '...' : ''}\n`;
-      discordMessage += `**ลบโดย:** ${userDoc.name || userDoc.username}\n`;
-      discordMessage += `**วันที่ลบ:** ${new Date().toLocaleString('th-TH')}\n`;
-
-      await sendDiscordNotification(
-        '🗑️ ลบคำประกาศ',
-        discordMessage,
-        0xe74c3c, // Red
-        'withdrawals'
-      );
-    } catch (error) {
-      console.error('Failed to send Discord notification:', error);
     }
 
     return NextResponse.json({ message: 'ลบคำประกาศเรียบร้อยแล้ว' });
