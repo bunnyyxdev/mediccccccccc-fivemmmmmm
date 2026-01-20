@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Increase API body size limit to handle large announcement content
+  experimental: {
+    serverComponentsExternalPackages: ['mongoose'],
+  },
+  // For Next.js 14, we need to handle large payloads differently
+  // The API body size limit is now handled in the API routes themselves
   images: {
     remotePatterns: [
       {
