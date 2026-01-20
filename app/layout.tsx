@@ -74,22 +74,27 @@ export default function RootLayout({
         <Script id="sw-unregister" strategy="beforeInteractive">
           {`
             if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-              // Unregister all service workers
-              navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                  registration.unregister();
-                }
-              });
+              // Check if we're in development mode
+              const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
               
-              // Clear all caches
-              if ('caches' in window) {
-                caches.keys().then(function(cacheNames) {
-                  return Promise.all(
-                    cacheNames.map(function(cacheName) {
-                      return caches.delete(cacheName);
-                    })
-                  );
+              if (isDevelopment) {
+                // Unregister all service workers in development
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for(let registration of registrations) {
+                    registration.unregister();
+                  }
                 });
+                
+                // Clear all caches in development
+                if ('caches' in window) {
+                  caches.keys().then(function(cacheNames) {
+                    return Promise.all(
+                      cacheNames.map(function(cacheName) {
+                        return caches.delete(cacheName);
+                      })
+                    );
+                  });
+                }
               }
             }
           `}
