@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   Package,
   Clock,
   Users,
-  Image,
+  Image as ImageIcon,
   AlertCircle,
   Ban,
   FileText,
@@ -89,7 +90,7 @@ const menuItems: MenuItem[] = [
   },
   {
     label: 'สตอรี่',
-    icon: Image,
+    icon: ImageIcon,
     href: '/dashboard/story',
     roles: ['doctor', 'admin'] as const,
   },
@@ -217,17 +218,24 @@ export default function Sidebar({ role = 'doctor', onLogout }: SidebarProps) {
       }}>
       <div className="flex flex-col h-full">
         {/* Logo/Header */}
-        <div className="p-6 border-b border-gray-800 flex items-center justify-between">
-          <div>
-              <h1 className="text-xl font-bold text-primary-400">ระบบหมอ Preview City</h1>
-            <p className="text-sm text-gray-400 mt-1">Medic Management System</p>
+        <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+          <div className="flex flex-col items-center w-full">
+            <Image
+              src="/logo.png"
+              alt="Marina Town Logo"
+              width={140}
+              height={70}
+              className="object-contain mb-2"
+              priority
+            />
+            <p className="text-xs text-gray-400">Medic Management System</p>
             {currentTime && (
-              <p className="text-xs text-gray-500 mt-2 font-mono">{currentTime}</p>
+              <p className="text-xs text-gray-500 mt-1 font-mono">{currentTime}</p>
             )}
           </div>
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="lg:hidden p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            className="lg:hidden absolute top-4 right-4 p-2 hover:bg-gray-800 rounded-lg transition-colors"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />

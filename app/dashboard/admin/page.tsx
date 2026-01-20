@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { useRouter } from 'next/navigation';
-import { Users, UserPlus, Settings, Shield, TrendingUp } from 'lucide-react';
+import { Users, UserPlus, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboardPage() {
@@ -93,13 +93,6 @@ export default function AdminDashboardPage() {
       icon: UserPlus,
       href: '/dashboard/admin/users/create',
       color: 'bg-green-500',
-    },
-    {
-      label: 'ตั้งค่าระบบ',
-      description: 'จัดการการตั้งค่าระบบ',
-      icon: Settings,
-      href: '/dashboard/admin/settings',
-      color: 'bg-purple-500',
     },
   ];
 

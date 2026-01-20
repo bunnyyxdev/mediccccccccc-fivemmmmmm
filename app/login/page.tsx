@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { LogIn, User, Shield, Lock, Eye, EyeOff } from 'lucide-react';
+import { LogIn, User, Lock, Eye, EyeOff } from 'lucide-react';
+import Image from 'next/image';
 import PasswordInput from '@/components/PasswordInput';
 
 export default function LoginPage() {
@@ -121,20 +122,22 @@ export default function LoginPage() {
         {/* Main Login Card */}
         <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
           {/* Header Section with Gradient */}
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-8 py-10 text-center relative overflow-hidden">
+          <div className="bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500 px-8 py-8 text-center relative overflow-hidden">
             <div className="absolute inset-0 opacity-10">
               <div className="absolute inset-0" style={{
                 backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px)'
               }}></div>
             </div>
-            <div className="relative">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 shadow-lg">
-                <Shield className="w-10 h-10 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
-                ระบบหมอ Preview City
-              </h1>
-              <p className="text-blue-100 text-sm font-medium">Medic Management System</p>
+            <div className="relative flex flex-col items-center">
+              <Image
+                src="/logo.png"
+                alt="Marina Town Logo"
+                width={200}
+                height={100}
+                className="object-contain mb-3 drop-shadow-lg"
+                priority
+              />
+              <p className="text-white text-xl font-semibold tracking-wide">Medic Management System</p>
             </div>
           </div>
 
@@ -219,7 +222,7 @@ export default function LoginPage() {
             {/* Footer */}
             <div className="mt-6 text-center">
               <p className="text-xs text-gray-500">
-                ยินดีต้อนรับเข้าสู่ระบบจัดการแพทย์ Preview City
+                ยินดีต้อนรับเข้าสู่ระบบจัดการแพทย์ Marina Town
               </p>
             </div>
           </div>
