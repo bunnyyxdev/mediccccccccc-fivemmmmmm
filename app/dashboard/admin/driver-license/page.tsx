@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { useRouter } from 'next/navigation';
-import { Car, Search, Check, X, Edit, Award, Shield, Users, FileText, TrendingUp, Filter, ChevronDown, Plane } from 'lucide-react';
+import { Car, Search, Check, X, Edit, Award, Shield, Users, FileText, TrendingUp, Filter, ChevronDown, Plane, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { getDoctorRankLabel } from '@/lib/doctor-ranks';
@@ -458,6 +458,22 @@ export default function DriverLicensePage() {
                       </p>
                     )}
                   </div>
+                </div>
+              </div>
+
+              {/* Time Period */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+                  <Clock className="w-4 h-4 mr-2 text-green-600" />
+                  ช่วงเวลา
+                </h3>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="--:-- --:--"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                  />
                 </div>
               </div>
 
